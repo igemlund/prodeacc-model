@@ -6,12 +6,13 @@ using ParameterizedFunctions
 K = 12.9870         #Constant ratio Q⬚(t)/B⬚(t)
 # ---- Rates [days^-1] ----
 # Organic mercury
-k_abs = 12.9870     # Oral absorption rate constant
-k_QI  = 5.5440      # Metabolism rate constant of organic mercury to inorganic mercury
+k_abs = 5.5440     # Oral absorption rate constant
+k_QI  = 0.01347      # Metabolism rate constant of organic mercury to inorganic mercury
 k_QF  = 9.0668e-5   # Whole body to feces transfer coefficient of organic mercury
 k_QU  = 0           # Whole body to urine transfer coefficient of organic mercury
 k_QH  = 2.3825e-4   # Whole body to hair transfer coefficient of organic mercury
-k_elim = 0.01380    # Whole body elimination rate constant of organic mercury
+k_elim = k_QU + k_QF + k_QI + k_QH  # Whole body elimination rate constant of
+                                    # organic mercury
 
 # Incorganic mercury
 d_BL = 0.1750       # Blood to liver transfer coefficient combined with liver
@@ -47,6 +48,10 @@ inorganic_simplied = @ode_def begin
     dH  = k_BH * B
 end d_BBr d_BL k_BrB k_BBr k_BK k_BH k_BU k_KB k_LB k_LF k_BL k_BH k_BF k_KU
 
+#carrier_II = @ode_def begin
+#    dI = (k_QI * K) * Bₒ
+#end
+
 o_0 = [1.0;0.0;0]
 o_p = [k_abs, k_QI, k_QH, k_QF, k_QU]
 io_0 = [1.0;0.0;0.0;0.0;0.0;0.0;0.0;0.0]
@@ -55,10 +60,13 @@ io_p = [d_BBr, d_BL, k_BrB, k_BBr, k_BK, k_BH, k_BU, k_KB, k_LB, k_LF, k_BL, k_B
 tspan = (0.0, 365)
 prob = ODEProblem(inorganic_simplied,io_0,tspan,io_p)
 sol = solve(prob)[2:end]
-plot()
+
+# Plotting
+plotly()
+plot()                  
 plot!(sol, vars=(1))
 plot!(sol, vars=(2))
-plot!(sol, vars=(3), yscale = :log)
+plot!(sol, vars=(3), yscale=:log)
 plot!(sol, vars=(4))
 plot!(sol, vars=(5))
 plot!(sol, vars=(6))
