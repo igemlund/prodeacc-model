@@ -33,7 +33,7 @@ k_BL = 10           # TODO: Find the value for this. Was not included in the pap
 
 organic_simplified = @ode_def begin
     dg = - k_abs * g
-    dQ = k_abs * g - (k_QI + k_QH + k_QF + k_QU) * Q
+    dQ = k_abs * g -  k_elim * Q
     dE = (k_QI + k_QH + k_QF + k_QU) * Q
 end k_abs k_QI k_QH k_QF k_QU
 
@@ -46,29 +46,48 @@ inorganic_simplied = @ode_def begin
     dU  = k_BU * B + k_KU * K
     dF  = k_BF * B + k_LF * L
     dH  = k_BH * B
-end d_BBr d_BL k_BrB k_BBr k_BK k_BH k_BU k_KB k_LB k_LF k_BL k_BH k_BF k_KU
+end d_BBr d_BL k_BrB k_BBr k_BK k_BU k_KB k_LB k_LF k_BL k_BH k_BF k_KU
 
-#carrier_II = @ode_def begin
-#    dI = (k_QI * K) * Bₒ
-#end
+carrier_II = @ode_def begin
+    # Organic
+    dg = - k_abs * g
+    dQₒ = k_abs * g -  k_elim * Qₒ
+    dHₒ = k_QH * Qₒ
+    dFₒ = k_QF * Qₒ
+    dUₒ = k_QU
+    dI  = k_QI * Qₒ
+    dBₒ = k_abs / K * g -k_elim * Bₒ
+
+    # Inorganic
+    dLᵢ  = - (k_LB + k_LF) * Lᵢ + d_BL * Bᵢ + d_BL * Bₒ
+    dKᵢ  = - (k_KB + k_KU) * Kᵢ + k_BK * Bᵢ
+    dHᵢ  = k_BH * Bᵢ
+    dBᵢ = - (k_BBr + k_BK + k_BL + k_BH + k_BF + k_BU) * Bᵢ + k_KB * Kᵢ + k_LB * Lᵢ + k_BrB * Brᵢ
+    dFᵢ  = k_BF * Bᵢ + k_LF * Lᵢ
+    dUᵢ  = k_BU * Bᵢ + k_KU * Kᵢ
+    dBrᵢ = - k_BrB * Brᵢ + k_BBr * Bᵢ + d_BBr * Bₒ
+end a
 
 o_0 = [1.0;0.0;0]
 o_p = [k_abs, k_QI, k_QH, k_QF, k_QU]
 io_0 = [1.0;0.0;0.0;0.0;0.0;0.0;0.0;0.0]
-io_p = [d_BBr, d_BL, k_BrB, k_BBr, k_BK, k_BH, k_BU, k_KB, k_LB, k_LF, k_BL, k_BH, k_BF, k_KU]
+io_p = [d_BBr, d_BL, k_BrB, k_BBr, k_BK, k_BU, k_KB, k_LB, k_LF, k_BL, k_BH, k_BF, k_KU]
+carrier_0 = [100.0; zeros(13)]
+carrier_p = 1
 
-tspan = (0.0, 365)
-prob = ODEProblem(inorganic_simplied,io_0,tspan,io_p)
+tspan = (0.0, 200)
+prob = ODEProblem(carrier_II,carrier_0,tspan,1)
 sol = solve(prob)[2:end]
 
 # Plotting
-plotly()
-plot()                  
+plot()
 plot!(sol, vars=(1))
 plot!(sol, vars=(2))
-plot!(sol, vars=(3), yscale=:log)
+plot!(sol, vars=(3))
 plot!(sol, vars=(4))
 plot!(sol, vars=(5))
 plot!(sol, vars=(6))
-plot!(sol, vars=(7))
+plot!(sol, vars=(7), yscale=:log)
+plot!(sol, vars=(11), yscale=:log)
 plot!(sol, vars=(8))
+plot!(sol, vars=(13))
