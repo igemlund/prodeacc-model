@@ -30,7 +30,6 @@ k_BF = 3.9917       # Blood to feces transfer coefficient of inorganic mercury
 k_LF = 1.5476       # Liver to feces transfer coefficient of inorganic mercury
 k_BBr = 0.0028      # Blood to brain transfer coefficient of inorganic mercury
 k_BrB = 0.0520      # Brain to blood transfer coefficient of inorganic mercury
-k_BL = 10           # TODO: Find the value for this. Was not included in the paper.
 
 carrier_II = @ode_def begin
     # Organic
@@ -61,6 +60,9 @@ prob = ODEProblem(carrier_II,carrier_0,tspan,1)
 sol = solve(prob)[2:end]
 
 # Plotting
+plotly()
 plot()
+
 plot!(sol.t,sol[11,:]/4000, yscale=:log, ylim=[1e-3, 100])
 plot!(sol.t,sol[7,:]/4000, yscale=:log, ylim=[1e-3, 100])
+plot(sol)
