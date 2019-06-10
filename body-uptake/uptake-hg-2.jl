@@ -38,7 +38,7 @@ carrier_II = @ode_def begin
     dQₒ = k_abs * g -  k_elim * Qₒ
     dHₒ = k_QH * Qₒ
     dFₒ = k_QF * Qₒ
-    dUₒ = k_QU
+    dUₒ = k_QU * Qₒ
     dI  = k_QI * Qₒ
     dBₒ = k_abs / K * g -k_elim * Bₒ
 
