@@ -7,8 +7,8 @@ using IterableTables, DataFrames
 K = 12.9870         #Constant ratio Q⬚(t)/B⬚(t)
 # ---- Rates [days^-1] ----
 # Organic mercury
-k_abs = 5.5440     # Oral absorption rate constant
-k_QI  = 0.01347      # Metabolism rate constant of organic mercury to inorganic mercury
+k_abs = 5.5440      # Oral absorption rate constant
+k_QI  = 0.01347     # Metabolism rate constant of organic mercury to inorganic mercury
 k_QF  = 9.0668e-5   # Whole body to feces transfer coefficient of organic mercury
 k_QU  = 0           # Whole body to urine transfer coefficient of organic mercury
 k_QH  = 2.3825e-4   # Whole body to hair transfer coefficient of organic mercury
