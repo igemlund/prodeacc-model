@@ -1,6 +1,10 @@
 using Pkg
 Pkg.add("Plots")
+Pkg.add("Plotly")
 Pkg.add("DifferentialEquations")
 Pkg.add("ParameterizedFunctions")
 Pkg.add("IterableTables")
 Pkg.add("PyCall")
+Pkg.add("PlotlyJS")
+Pkg.add("PyPlot")
+Pkg.add("ORCA")
