@@ -172,29 +172,15 @@ dede = @ode_def begin
     dBilₙ = eB * Liₙ
 end a
 
-#dose = 1.67
-#time = 5 #days
-#dede_0 = [dose;zeros(39)]
-#tspan = (0.0,time)
-#prob = ODEProblem(dede,dede_0,tspan,1)
-#sol = solve(prob)
-#display(sol[28,:])
-y = []
-my_x = Array{Float64,1}[]
-dose = [1.67]
-for i = 0:1
-    dede_0 = [zeros(10);dose[trunc(Int,i+1)];zeros(29)]
-    tspan = (i, i + 0.99)
-    prob = ODEProblem(dede,dede_0,tspan,1)
-    sol = solve(prob)
-    push!(dose, sol[11,length(sol.t)]+1.67)
-    append!(y,sol[28,:])
-    #append!(x,sol.t)
+dose = 1.67
+time = 5 #days
+dede_0 = [zeros(10);dose;zeros(29)]
+tspan = (0.0,time)
+prob = ODEProblem(dede,dede_0,tspan,1)
+sol = solve(prob)
 
-end
-
-display(y)
-#plot!(sol.t,sol[28,:])
-#plot!(sol.t, sol[38,:])
-#plot!(sol.t, sol[8,:] + sol[18,:])
-#plot!(sol.t, sol[8,:] + sol[18,:] + sol[28,:] + sol[38,:])
+plot()
+plot!(sol.t, sol[28,:])
+plot!(sol.t, sol[38,:])
+plot!(sol.t, sol[8,:] + sol[18,:])
+plot!(sol.t, sol[8,:] + sol[18,:] + sol[28,:] + sol[38,:])
