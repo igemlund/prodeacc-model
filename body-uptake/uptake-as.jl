@@ -61,9 +61,9 @@ P_brN = 3.3
 
 eF = 0.03 #faecal excretion rate (/day)
 eB = 0.43 #Biliary excretion rate (/day)
-eUᵢ = 57.6 #Urinary excretion rate for As3 and As5 (/day)
+eUᵢ = 100.8 #Urinary excretion rate for As3 and As5 (/day)
 eUₘ = 432 #Urinary excretion rate for MMA (/day)
-eUₙ = 100.8 #Urinary excretion rate for DMA (/day)
+eUₙ = 187.2 #Urinary excretion rate for DMA (/day)
 
 
 #Rate constant of As(III) (/day)
@@ -72,8 +72,9 @@ k_LiB₃ = Q_liv/(V_liv*P_liv3) #from liver to blood
 k_KB₃ = Q_kid/(V_kid*P_kid3) #from kidney to blood
 k_SB₃ = Q_skin/(V_skin*P_skin3) #from skin to blood
 k_LuB₃ = Q_lung/(V_lung*P_lung3) #from lung to blood
-#R stand for the rest, it's a combined compartment for muscle, heart and brain since arsenic don't have as big of an effect on them as the other organs so we are not interested on how they behave
-k_RB₃ = Q_mus/(V_mus*P_mus3) + Q_hrt/(V_hrt*P_hrt3) + Q_br/(V_br*P_br3)
+k_MB₃ = Q_mus/(V_mus*P_mus3)
+k_HB₃ = Q_hrt/(V_hrt*P_hrt3)
+k_BrB₃ = Q_br/(V_br*P_br3)
 
 #Rate constant of As(V) (/day)
 k_GB₅ = Q_gi/(V_gi*P_gi5) #from GI tract to blood
@@ -81,7 +82,9 @@ k_LiB₅ = Q_liv/(V_liv*P_liv5) #from liver to blood
 k_KB₅ = Q_kid/(V_kid*P_kid5) #from kidney to blood
 k_SB₅ = Q_skin/(V_skin*P_skin5) #from skin to blood
 k_LuB₅ = Q_lung/(V_lung*P_lung5) #from lung to blood
-k_RB₅ = Q_mus/(V_mus*P_mus5) + Q_hrt/(V_hrt*P_hrt5) + Q_br/(V_br*P_br5) #from the rest to blood
+k_MB₅ = Q_mus/(V_mus*P_mus5)
+k_HB₅ = Q_hrt/(V_hrt*P_hrt5)
+k_BrB₅ = Q_br/(V_br*P_br5)
 
 #Rate constant of MMA (/day)
 k_GBₘ = Q_gi/(V_gi*P_giM) #from GI tract to blood
@@ -89,7 +92,9 @@ k_LiBₘ = Q_liv/(V_liv*P_livM) #from liver to blood
 k_KBₘ = Q_kid/(V_kid*P_kidM) #from kidney to blood
 k_SBₘ = Q_skin/(V_skin*P_skinM) #from skin to blood
 k_LuBₘ = Q_lung/(V_lung*P_lungM) #from lung to blood
-k_RBₘ = Q_mus/(V_mus*P_musM) + Q_hrt/(V_hrt*P_hrtM) + Q_br/(V_br*P_brM) #from the rest to blood
+k_MBₘ = Q_mus/(V_mus*P_musM)
+k_HBₘ = Q_hrt/(V_hrt*P_hrtM)
+k_BrBₘ = Q_br/(V_br*P_brM)
 
 #Rate constant of DMA (/day)
 k_GBₙ = Q_gi/(V_gi*P_giN) #from GI tract to blood
@@ -97,7 +102,9 @@ k_LiBₙ = Q_liv/(V_liv*P_livN) #from liver to blood
 k_KBₙ = Q_kid/(V_kid*P_kidN) #from kidney to blood
 k_SBₙ = Q_skin/(V_skin*P_skinN) #from skin to blood
 k_LuBₙ = Q_lung/(V_lung*P_lungN) #from lung to blood
-k_RBₙ = Q_mus/(V_mus*P_musN) + Q_hrt/(V_hrt*P_hrtN) + Q_br/(V_br*P_brN) #from the rest to blood
+k_MBₙ = Q_mus/(V_mus*P_musN)
+k_HBₙ = Q_hrt/(V_hrt*P_hrtN)
+k_BrBₙ = Q_br/(V_br*P_brN)
 
 #Rate constant from blood to other organs for both organic and inorganic arsenic
 k_BG = Q_gi/V_blood#from Blood to GI tract
@@ -105,7 +112,9 @@ k_BLi = Q_liv/V_blood #from blood to liver
 k_BK = Q_kid/V_blood #from blood to kidney
 k_BS = Q_skin/V_blood #from blood to skin
 k_BLu = Q_lung/V_blood #from blood to lung
-k_BR = (Q_mus+Q_hrt+Q_br)/V_blood #from blood to the rest
+k_BM = Q_mus/V_blood
+k_BH = Q_hrt/V_blood
+k_BBr = Q_br/V_blood
 
 #Reduction and Oxidation of inorganic arsenic
 R_Tis = 32.88 #As(V) reduction in tissues (/day)
@@ -124,16 +133,18 @@ M = 3 #another metabolism constant (μmol/L), all of them have value 3 so it can
 dede = @ode_def begin
 
 #Differential equations for As(III)
-    dG₃ = - (k_GB₃ + eF + O_Tis) * G₃ + k_BG * B₃ + R_Tis * G₅
-    dLi₃ = - (k_LiB₃ + eB + O_Tis) * Li₃ + k_BLi * B₃ + R_Tis * Li₅ - (M_Li3M * (Li₃ / V_liv)) / (M + Li₃ / V_liv) - (M_Li3N * (Li₃ / V_liv)) / (M + Li₃ / V_liv)
-    dK₃ = - (k_KB₃ + eUᵢ + O_Tis) * K₃ + k_BK * B₃ + R_K * K₅ - (M_K3M *( K₃ / V_kid))/(M + (K₃ / V_kid)) - (M_K3N * (K₃ / V_kid)) / (M + K₃ / V_kid)
-    dS₃ = - (k_SB₃ + O_Tis) * S₃ + k_BS * B₃ + R_Tis * S₅
-    dLu₃ = - (k_LuB₃ + O_Tis) * Lu₃ + k_BLu * B₃ + R_Tis * Lu₅
-    dR₃ = - (k_RB₃ + O_Tis) * R₃ + k_BR * B₃ + R_Tis * R₅
-    dB₃ = - (k_BG + k_BLi + k_BK + k_BS + k_BLu + k_BR + O_Tis) * B₃ + k_GB₃ * G₃ + k_LiB₃ * Li₃ + k_KB₃ * K₃ + k_SB₃ * S₃ + k_LuB₃ * Lu₃ + k_RB₃ * R₃ + R_Tis * B₅
-    dU₃ = eUᵢ * K₃
-    dF₃ = eF * G₃
-    dBil₃ = eB * Li₃
+    dG₃ = - (k_GB₃ + eF + O_Tis) * G₃ + k_BG * B₃ + R_Tis * G₅ #Gut
+    dLi₃ = - (k_LiB₃ + eB + O_Tis) * Li₃ + k_BLi * B₃ + R_Tis * Li₅ - (M_Li3M * (Li₃ / V_liv)) / (M + Li₃ / V_liv) - (M_Li3N * (Li₃ / V_liv)) / (M + Li₃ / V_liv) #Liver
+    dK₃ = - (k_KB₃ + eUᵢ + O_Tis) * K₃ + k_BK * B₃ + R_K * K₅ - (M_K3M *( K₃ / V_kid))/(M + (K₃ / V_kid)) - (M_K3N * (K₃ / V_kid)) / (M + K₃ / V_kid) #Kidney
+    dS₃ = - (k_SB₃ + O_Tis) * S₃ + k_BS * B₃ + R_Tis * S₅ #skin
+    dLu₃ = - (k_LuB₃ + O_Tis) * Lu₃ + k_BLu * B₃ + R_Tis * Lu₅ #lung
+    dB₃ = - (k_BG + k_BLi + k_BK + k_BS + k_BLu + k_BM + k_BH + k_BBr + O_Tis) * B₃ + k_GB₃ * G₃ + k_LiB₃ * Li₃ + k_KB₃ * K₃ + k_SB₃ * S₃ + k_LuB₃ * Lu₃ + k_MB₃ * M₃ + k_HB₃ * H₃ + k_BrB₃ * Br₃ + R_Tis * B₅ #blood
+    dM₃ = - (k_MB₃ + O_Tis) * M₃ + k_BM * B₃ + R_Tis * M₅ #muscle
+    dH₃ = - (k_HB₃ + O_Tis) * H₃ + k_BH * B₃ + R_Tis * H₅ #heart
+    dBr₃ = - (k_BrB₃ + O_Tis) * Br₃ + k_BBr * B₃ + R_Tis * Br₅ #brain
+    dU₃ = eUᵢ * K₃ #Urine
+    dF₃ = eF * G₃ #Faeces
+    dBil₃ = eB * Li₃ #Biliary
 
 #Differential equations for As(V)
     dG₅ = - (k_GB₅ + eF + R_Tis) * G₅ + k_BG * B₅ + O_Tis * G₃
@@ -141,8 +152,10 @@ dede = @ode_def begin
     dK₅ = - (k_KB₅ + eUᵢ + R_K) * K₅ + k_BK * B₅ + O_Tis * K₃
     dS₅ = - (k_SB₅ + R_Tis) * S₅ + k_BS * B₅ + O_Tis * S₃
     dLu₅ = - (k_LuB₅ + R_Tis) * Lu₅ + k_BLu * B₅ + O_Tis * Lu₃
-    dR₅ = - (k_RB₅ + R_Tis) * R₅ + k_BR * B₅ + O_Tis * R₃
-    dB₅ = - (k_BG + k_BLi + k_BK + k_BS + k_BLu + k_BR + R_Tis) * B₅ + k_GB₅ * G₅ + k_LiB₅ * Li₅ + k_KB₅ * K₅ + k_SB₅ * S₅ + k_LuB₅ * Lu₅ + k_RB₅ * R₅ + O_Tis * B₃
+    dB₅ = - (k_BG + k_BLi + k_BK + k_BS + k_BLu + k_BM + k_BH + k_BBr + R_Tis) * B₅ + k_GB₅ * G₅ + k_LiB₅ * Li₅ + k_KB₅ * K₅ + k_SB₅ * S₅ + k_LuB₅ * Lu₅ + k_MB₅ * M₅ + k_HB₅ * H₅ + k_BrB₅ * Br₅ + O_Tis * B₃
+    dM₅ = - (k_MB₅ + R_Tis) * M₅ + k_BM * B₅ + O_Tis * M₃
+    dH₅ = - (k_HB₅ + R_Tis) * H₅ + k_BH * B₅ + O_Tis * H₃
+    dBr₅ = - (k_BrB₅ + R_Tis) * Br₅ + k_BBr * B₅ + O_Tis * Br₃
     dU₅ = eUᵢ * K₅
     dF₅ = eF * G₅
     dBil₅ = eB * Li₅
@@ -153,8 +166,10 @@ dede = @ode_def begin
     dKₘ = - (k_KBₘ + eUₘ) * Kₘ + k_BK * Bₘ + (M_K3M * (K₃ / V_kid)) / (M + K₃ / V_kid) - (M_KMN * (Kₘ / V_kid)) / (M + Kₘ / V_kid)
     dSₘ = - k_SBₘ * Sₘ + k_BS * Bₘ
     dLuₘ = - k_LuBₘ * Luₘ + k_BLu * Bₘ
-    dRₘ = - k_RBₘ * Rₘ + k_BR * Bₘ
-    dBₘ = - (k_BG + k_BLi + k_BK + k_BS + k_BLu + k_BR) * Bₘ + k_GBₘ * Gₘ + k_LiBₘ * Liₘ + k_KBₘ * Kₘ + k_SBₘ * Sₘ + k_LuBₘ * Luₘ + k_RBₘ * Rₘ
+    dBₘ = - (k_BG + k_BLi + k_BK + k_BS + k_BLu + k_BM + k_BH + k_BBr) * Bₘ + k_GBₘ * Gₘ + k_LiBₘ * Liₘ + k_KBₘ * Kₘ + k_SBₘ * Sₘ + k_LuBₘ * Luₘ + k_MBₘ * Mₘ + k_HBₘ * Hₘ + k_BrBₘ * Brₘ
+    dMₘ = - k_MBₘ * Mₘ + k_BM * Bₘ
+    dHₘ = - k_HBₘ * Hₘ + k_BH * Bₘ
+    dBrₘ = - k_BrBₘ * Brₘ + k_BBr * Bₘ
     dUₘ = eUₘ * Kₘ
     dFₘ = eF * Gₘ
     dBilₘ = eB * Liₘ
@@ -165,22 +180,25 @@ dede = @ode_def begin
     dKₙ = - (k_KBₙ + eUₙ) * Kₙ + k_BK * Bₙ + (M_K3N * (K₃ / V_kid)) / (M + K₃ / V_kid) + (M_KMN * (Kₘ / V_kid)) / (M + Kₘ / V_kid)
     dSₙ = - k_SBₙ * Sₙ + k_BS * Bₙ
     dLuₙ = - k_LuBₙ * Luₙ + k_BLu * Bₙ
-    dRₙ = - k_RBₙ * Rₙ + k_BR * Bₙ
-    dBₙ = - (k_BG + k_BLi + k_BK + k_BS + k_BLu + k_BR) * Bₙ + k_GBₙ * Gₙ + k_LiBₙ * Liₙ + k_KBₙ * Kₙ + k_SBₙ * Sₙ + k_LuBₙ * Luₙ + k_RBₙ * Rₙ
+    dBₙ = - (k_BG + k_BLi + k_BK + k_BS + k_BLu + k_BM + k_BH + k_BBr) * Bₙ + k_GBₙ * Gₙ + k_LiBₙ * Liₙ + k_KBₙ * Kₙ + k_SBₙ * Sₙ + k_LuBₙ * Luₙ + k_MBₙ * Mₙ + k_HBₙ * Hₙ + k_BrBₙ * Brₙ
+    dMₙ = - k_MBₙ * Mₙ + k_BM * Bₙ
+    dHₙ = - k_HBₙ * Hₙ + k_BH * Bₙ
+    dBrₙ = - k_BrBₙ * Brₙ + k_BBr * Bₙ
     dUₙ = eUₙ * Kₙ
     dFₙ = eF * Gₙ
     dBilₙ = eB * Liₙ
 end a
 
-dose = 1.67
+dose = 1.3e-4
 time = 5 #days
-dede_0 = [zeros(10);dose;zeros(29)]
+dede_0 = zeros(48)
+dede_0[13] = dose
 tspan = (0.0,time)
 prob = ODEProblem(dede,dede_0,tspan,1)
 sol = solve(prob)
 
 plot()
-plot!(sol.t, sol[28,:])
-plot!(sol.t, sol[38,:])
-plot!(sol.t, sol[8,:] + sol[18,:])
-plot!(sol.t, sol[8,:] + sol[18,:] + sol[28,:] + sol[38,:])
+plot!(sol.t, sol[34,:], ylim = [0,9e-5], label = "MMA in urine")
+plot!(sol.t, sol[46,:], label = "DMA in urine")
+plot!(sol.t, sol[10,:] + sol[22,:], label = "inorganic arsenic in urine")
+plot!(sol.t, sol[10,:] + sol[22,:] + sol[34,:] + sol[46,:], label = "total arsenic in urine")
