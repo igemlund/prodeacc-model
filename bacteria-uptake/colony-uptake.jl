@@ -1,3 +1,5 @@
+# This models the uptake of ions for a colony of E. coli inside the GI-trackt
+
 using DifferentialEquations
 using ODEInterfaceDiffEq
 using ParameterizedFunctions
@@ -15,7 +17,7 @@ mcg2ions(mcg, molarmass) = mcg*1e-6/molarmass*Av
 # Rates
 k_tsl = 1*60*60                     # Translation rate [/h]
 k_rna_deg = 20.79                   # RNA degradation rate [/h]
-k_growth = log(2)/0.5                 # Growth rate, double every 30 min. [/h]
+k_growth = log(2)/1                 # Growth rate, double every 30 min. [/h]
 k_pro_deg = 1/(1000/60/60)          # Effective Protein degradation rate [/h]
 k_pro_deg = k_growth          # Effective Protein degradation rate [/h]
 V_max = 500e-6 * Av                 # unknown [/h]
@@ -63,4 +65,4 @@ ion_sum(sol) = (sol[2,:] + (sol[5,:]+sol[6,:]).*sol[1,:])./G0
 plot(sol.t, ion_sum(sol), label="total")#, ylim=[0.0, 2.0])
 plot!(sol.t, sol[2,:]/G0, label="in GI")
 plot!(title="Relative change")
-plot(sol, vars=[5 6])
+#plot(sol, vars=[5 6])
