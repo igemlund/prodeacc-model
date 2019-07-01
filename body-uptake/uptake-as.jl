@@ -42,7 +42,8 @@ P_br3 = 2.4 #Same as above but for brain
 P_br5 = 2.4
 
 #Organic partition coefficient (MMA and DMA are two forms of organic arsenic)
-P_giM = 2.2 #GI tract/blood partition coefficient for MMA
+#partition coefficient is the ratio of concentrations of a compound in a mixture of two immiscible phases at equilibrium
+P_giM = 2.2 #GI tract/blood partition coefficient for MMA ((GI/V_gi)/(B/V_blood))
 P_giN = 2.1 #GI tract/blood partition coefficient for DMA
 P_livM = 3.3 #Same as above but for liver
 P_livN = 3.3
@@ -58,6 +59,12 @@ P_hrtM = 2.61 #Same as above but for heart
 P_hrtN = 2.4
 P_brM = 2.2 #Same as above but for brain
 P_brN = 3.3
+
+#calculate absorption coefficient (A_gi) from P_gi, A_gi is the percentage of amount of arsenic being obsorbed to blood
+A_gi3 = (V_blood/V_gi)/(P_gi3 + (V_blood/V_gi))
+A_gi5 = (V_blood/V_gi)/(P_gi5 + (V_blood/V_gi))
+A_giM = (V_blood/V_gi)/(P_giM + (V_blood/V_gi))
+A_giN = (V_blood/V_gi)/(P_giN + (V_blood/V_gi))
 
 eF = 0.03 #faecal excretion rate (/day)
 eB = 0.43 #Biliary excretion rate (/day)
@@ -130,8 +137,11 @@ M_K3N = 1152 #from As3 to DMA in the kidney (μmol/day)
 M_KMN = 380.16 #from MMA to DMA in the kidney (μmol/day)
 M = 3 #another metabolism constant (μmol/L), all of them have value 3 so it can be combined into one variable
 #G₅ = 1.67
-dede = @ode_def begin
 
+
+
+
+arsenic_once = @ode_def begin #arsenic model for one time ingestion
 #Differential equations for As(III)
     dG₃ = - (k_GB₃ + eF + O_Tis) * G₃ + k_BG * B₃ + R_Tis * G₅ #Gut
     dLi₃ = - (k_LiB₃ + eB + O_Tis) * Li₃ + k_BLi * B₃ + R_Tis * Li₅ - (M_Li3M * (Li₃ / V_liv)) / (M + Li₃ / V_liv) - (M_Li3N * (Li₃ / V_liv)) / (M + Li₃ / V_liv) #Liver
@@ -189,16 +199,26 @@ dede = @ode_def begin
     dBilₙ = eB * Liₙ
 end a
 
-dose = 1.3e-4
-time = 5 #days
-dede_0 = zeros(48)
-dede_0[13] = dose
-tspan = (0.0,time)
-prob = ODEProblem(dede,dede_0,tspan,1)
-sol = solve(prob)
 
-plot()
-plot!(sol.t, sol[34,:], ylim = [0,9e-5], label = "MMA in urine")
-plot!(sol.t, sol[46,:], label = "DMA in urine")
-plot!(sol.t, sol[10,:] + sol[22,:], label = "inorganic arsenic in urine")
-plot!(sol.t, sol[10,:] + sol[22,:] + sol[34,:] + sol[46,:], label = "total arsenic in urine")
+function arsenic_plot(intake,day,organ) #intake refers to the daily intake, organ refers to the order number of the organ in the differential equations (from 1 to 12)
+    global initial = zeros(48)
+    global initial[13] = intake
+    global tspan = (0.0,1.0)
+    global prob = ODEProblem(arsenic_once,initial,tspan,1)
+    global sol = solve(prob)
+    global x = sol.t
+    global y = sol[organ,:] + sol[organ + 12,:] + sol[organ + 24,:] + sol[organ + 36,:]
+
+    for i = 1:day
+        global tspan = (i,i+1.0)
+        global initial = sol[end]
+        global initial[13] = initial[13] + intake
+        global prob = ODEProblem(arsenic_once,initial,tspan,1)
+        global sol = solve(prob)
+        global x = append!(x,sol.t)
+        global y = append!(y,sol[organ,:] + sol[organ + 12,:] + sol[organ + 24,:] + sol[organ + 36,:])
+    end
+    plot(x,y)
+end
+
+arsenic_plot(1e-3,365,4)
