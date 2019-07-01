@@ -7,8 +7,8 @@ using IterableTables, DataFrames
 K = 12.9870         #Constant ratio Q⬚(t)/B⬚(t)
 # ---- Rates [days^-1] ----
 # Organic mercury
-k_abs = 5.5440     # Oral absorption rate constant
-k_QI  = 0.01347      # Metabolism rate constant of organic mercury to inorganic mercury
+k_abs = 5.5440      # Oral absorption rate constant
+k_QI  = 0.01347     # Metabolism rate constant of organic mercury to inorganic mercury
 k_QF  = 9.0668e-5   # Whole body to feces transfer coefficient of organic mercury
 k_QU  = 0           # Whole body to urine transfer coefficient of organic mercury
 k_QH  = 2.3825e-4   # Whole body to hair transfer coefficient of organic mercury
@@ -30,7 +30,6 @@ k_BF = 3.9917       # Blood to feces transfer coefficient of inorganic mercury
 k_LF = 1.5476       # Liver to feces transfer coefficient of inorganic mercury
 k_BBr = 0.0028      # Blood to brain transfer coefficient of inorganic mercury
 k_BrB = 0.0520      # Brain to blood transfer coefficient of inorganic mercury
-k_BL = 10           # TODO: Find the value for this. Was not included in the paper.
 
 carrier_II = @ode_def begin
     # Organic
@@ -61,6 +60,9 @@ prob = ODEProblem(carrier_II,carrier_0,tspan,1)
 sol = solve(prob)[2:end]
 
 # Plotting
+plotly()
 plot()
+
 plot!(sol.t,sol[11,:]/4000, yscale=:log, ylim=[1e-3, 100])
 plot!(sol.t,sol[7,:]/4000, yscale=:log, ylim=[1e-3, 100])
+plot(sol)
