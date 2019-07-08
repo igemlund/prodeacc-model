@@ -221,4 +221,4 @@ function arsenic_plot(intake,day,organ) #intake refers to the daily intake, orga
     plot(x,y)
 end
 
-arsenic_plot(1e-3,365,4)
+arsenic_plot(1e-3,100,6)

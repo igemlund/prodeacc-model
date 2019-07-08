@@ -37,7 +37,7 @@ k_BW = Q_wp/V_plas
 k_BBo = Q_bone/V_plas
 k_BP = Q_pp/V_plas
 
-A_gi = 0.1 #PB absorption coefficient from GI tract, ranges from 0.06 to 0.12 (unitless)
+A_gi = 0.06 #PB absorption coefficient from GI tract, ranges from 0.06 to 0.12 (unitless)
 eU = 0.47 #(/day)
 eB = 0.2 #(/day)
 
@@ -47,7 +47,7 @@ BIND = 0.437 #Pb binding capacity of erythrocytes (mg Pb L⁻¹ cell)
 KBIND = 3.72e-4 #Binding constant of erythrocytes (mg Pb L⁻¹ cell)
 
 lead = @ode_def begin #ODE system for constant intake of lead per day over several days
-    dG = - A_gi * IR_gi - (1 - A_gi) * IR_gi  #IR_gi = oral intake rate  of Pb (mg/day) (given in solving function) #amount in gut
+    dG =  IR_gi - A_gi * IR_gi - (1 - A_gi) * IR_gi  #IR_gi = oral intake rate  of Pb (mg/day) (given in solving function) #amount in gut
     dLi = A_gi * IR_gi  - (k_LiB + eB) * Li + k_BLi * B #amount in liver
     dK = - (k_KB + eU) * K + k_BK * B #amount in kidney
     dBo = - k_BoB * Bo + k_BBo * B #amount in bone
@@ -59,21 +59,6 @@ lead = @ode_def begin #ODE system for constant intake of lead per day over sever
     dBi = eB * Li #Biliary excretion
     dF = (1 - A_gi) * IR_gi #Faeces
 end a
-
-lead_once = @ode_def begin #ODE system for one time intake of lead
-    dG = - A_gi * G - (1 - A_gi) * G
-    dLi = A_gi * G  - (k_LiB + eB) * Li + k_BLi * B
-    dK = - (k_KB + eU) * K + k_BK * B
-    dBo = - k_BoB * Bo + k_BBo * B
-    dWP = - k_WB * WP + k_BW * B
-    dPP = - k_PB * PP + k_BP * B
-    dB = (- (k_BLi + k_BK + k_BBo + k_BW + k_BP) * B
-     + k_LiB * Li + k_KB * K + k_BoB * Bo + k_WB * WP + k_PB * PP) #blood plasma amount
-    dU = eU * K
-    dBi = eB * Li
-    dF = (1 - A_gi) * G
-end b
-
 
 
 function CB(CPLASMA) #Function to calculate whole blood concentration from plasma concentration
@@ -103,24 +88,14 @@ function plotting(intake, duration, range, compartment) #intake is in mg/day, du
     B = solving(0.0, A[end],(duration,range))
 
     if compartment == 11   #compartment 11 is whole blood concentration
-        plot()
         plot!(A.t, wholeblood_conc(A))
         plot!(B.t, wholeblood_conc(B))
     else
-        plot()
         plot!(A.t, A[compartment,:])
         plot!(B.t, B[compartment,:])
     end
 end
 
-function plotting_once(intake,tspan) #plotting function for lead_once
-    x_0 = zeros(10)
-    x_0[1] = intake
-    prob = ODEProblem(lead_once,x_0,tspan,1)
-    sol = solve(prob)
-    plot()
-    plot!(sol.t,wholeblood_conc(sol))
-end
 
-#plotting_once(68e-3,(0.0,10.0)) #figure 10 subject C in dede et al
+plot()
 plotting(105e-3,82.0,300.0,11) #figure 10 subject D in dede et al
