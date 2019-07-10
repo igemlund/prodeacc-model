@@ -19,7 +19,6 @@ k_tsl = 1*60*60                     # Translation rate [/h]
 k_rna_deg = 20.79                   # RNA degradation rate [/h]
 k_growth = log(2)/1                 # Growth rate, double every 30 min. [/h]
 k_pro_deg = 1/(1000/60/60)          # Effective Protein degradation rate [/h]
-k_pro_deg = k_growth          # Effective Protein degradation rate [/h]
 V_max = 500e-6 * Av                 # unknown [/h]
 k_transport = 1.5 * Av / V_cell     # unknown [mol/m^3]
 k_CA = 1e3                          # unknown Accumulation protein capture rate
@@ -28,41 +27,43 @@ k_CG = 1.0                          # unknonw Ions Cytoplasm --> Gut
 # Start conditions
 G0 = mcg2ions(0.25, 75) * V_gut     # Gut start amount
 N0 = 1e9                            # Bacteria start amount
+N_max = 1e13                        # Assumed max amount of prodeacc in human gut
 
 # TODO: motvate this
 mRNAᵀ = 4
 mRNAᴬ = 4
-
 bacteria_uptake = @ode_def begin
     # Colony
-    dN = k_growth * N                                      # Number of bacteria in gut
+    dN = k_growth * N - k_growth * (N^2) / N_max                                    # Number of bacteria in gut
     dG =(-V_max/(1+k_transport/((G/V_gut-C/V_cell)/thickness))*N*TP    # Number of ions in gut
         + k_CG * N * C)
 
     # Single Bacteria
     dTP = (k_tsl * mRNAᵀ                                 # Number of transporters
-        - k_pro_deg * TP)
+        - dN / N * TP)
     dAP_free = (k_tsl * mRNAᴬ                            # Number of free accumulators
-        - k_pro_deg * AP_free
+        - dN / N * AP_free
         - k_CA * AP_free * C)
     dAP_occupied = (k_CA * AP_free * C                   # Number of occupied accumulators
-        - k_pro_deg * AP_occupied)
+        - dN / N * AP_occupied)
     dC = (V_max/(1+k_transport/((G/V_gut-C/V_cell)/thickness))*TP    # Number of ions in cytoplasm
         - k_CG * C
         - k_CA * C * AP_free
-        - k_pro_deg * C)
+        - dN / N * C)
 end a
 
 u0 = zeros(6)
 u0[1] = N0
 u0[2] = G0
-tspan = (0.0, 20.0)
+tspan = (0.0, 30.0)
 prob = ODEProblem(bacteria_uptake,u0,tspan,1)
 sol = solve(prob)
 
 # Relative change of ions
 ion_sum(sol) = (sol[2,:] + (sol[5,:]+sol[6,:]).*sol[1,:])./G0
 plot(sol.t, ion_sum(sol), label="total")#, ylim=[0.0, 2.0])
-plot!(sol.t, sol[2,:]/G0, label="in GI")
-plot!(title="Relative change")
+#plot!(sol.t, sol[2,:]/G0, label="in GI")
+#plot!(title="Relative change")
 #plot(sol, vars=[5 6])
+#plot!(sol.t,sol[4,:])
+plot!(sol.t, sol[5,:])
