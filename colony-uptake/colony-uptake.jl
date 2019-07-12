@@ -18,7 +18,7 @@ mcg2ions(mcg, molarmass) = mcg*1e-6/molarmass*Av
 k_tsl = 1*60*60                     # Translation rate [/h]
 k_rna_deg = 20.79                   # RNA degradation rate [/h]
 k_growth = log(2)/1                 # Growth rate, double every 30 min. [/h]
-k_pro_deg = 1/(1000/60/60)          # Effective Protein degradation rate [/h]
+k_pro_deg = 0.1          # Effective Protein degradation rate [/h]
 V_max = 500e-6 * Av                 # unknown [/h]
 k_m = 0.1 * Av / V_cell     # unknown [mol/m^3]
 k_CA = 1.0                          # unknown Accumulation protein capture rate
@@ -39,14 +39,18 @@ bacteria_uptake = @ode_def begin
 
     # Single Bacteria
     dTP = (k_tsl * mRNAᵀ                                 # Number of transporters
-        - dN / N * TP)
+        - dN / N * TP
+        - k_pro_deg * TP)
     dAP_free = (k_tsl * mRNAᴬ                            # Number of free accumulators
         - dN / N * AP_free
-        - k_CA * AP_free * C)
+        - k_CA * AP_free * C
+        - k_pro_deg * AP_free)
     dAP_occupied = (k_CA * AP_free * C                   # Number of occupied accumulators
-        - dN / N * AP_occupied)
+        - dN / N * AP_occupied
+        - k_pro_deg * AP_occupied)
     dC = (V_max/(1+k_m/(G/V_gut))*TP    # Number of ions in cytoplasm
         - k_CA * C * AP_free
+        + k_pro_deg * AP_occupied
         - dN / N * C)
 end V_max k_m
 
@@ -78,5 +82,5 @@ end
 
 K = [V_max, k_m]
 plot_init()
-plot_model(colony_uptake(18.0, K, 0.25))
+plot_model(colony_uptake(50.0, K, 0.25))
 #plot_transport(colony_uptake(18.0, K, 0.25)[2,:])
