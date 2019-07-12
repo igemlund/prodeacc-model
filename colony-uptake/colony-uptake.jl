@@ -20,8 +20,8 @@ k_rna_deg = 20.79                   # RNA degradation rate [/h]
 k_growth = log(2)/1                 # Growth rate, double every 30 min. [/h]
 k_pro_deg = 1/(1000/60/60)          # Effective Protein degradation rate [/h]
 V_max = 500e-6 * Av                 # unknown [/h]
-k_transport = 1.5 * Av / V_cell     # unknown [mol/m^3]
-k_CA = 1e3                          # unknown Accumulation protein capture rate
+k_m = 0.1 * Av / V_cell     # unknown [mol/m^3]
+k_CA = 1.0                          # unknown Accumulation protein capture rate
 k_CG = 1.0                          # unknonw Ions Cytoplasm --> Gut
 
 # Start conditions
@@ -35,8 +35,7 @@ mRNAᴬ = 4
 bacteria_uptake = @ode_def begin
     # Colony
     dN = k_growth * N - k_growth * (N^2) / N_max                                    # Number of bacteria in gut
-    dG =(-V_max/(1+k_transport/((G/V_gut-C/V_cell)/thickness))*N*TP    # Number of ions in gut
-        + k_CG * N * C)
+    dG =(-V_max/(1+k_m/(G/V_gut))*N*TP)    # Number of ions in gut
 
     # Single Bacteria
     dTP = (k_tsl * mRNAᵀ                                 # Number of transporters
@@ -46,24 +45,38 @@ bacteria_uptake = @ode_def begin
         - k_CA * AP_free * C)
     dAP_occupied = (k_CA * AP_free * C                   # Number of occupied accumulators
         - dN / N * AP_occupied)
-    dC = (V_max/(1+k_transport/((G/V_gut-C/V_cell)/thickness))*TP    # Number of ions in cytoplasm
-        - k_CG * C
+    dC = (V_max/(1+k_m/(G/V_gut))*TP    # Number of ions in cytoplasm
         - k_CA * C * AP_free
         - dN / N * C)
-end a
+end V_max k_m
 
-u0 = zeros(6)
-u0[1] = N0
-u0[2] = G0
-tspan = (0.0, 30.0)
-prob = ODEProblem(bacteria_uptake,u0,tspan,1)
-sol = solve(prob)
+function colony_uptake(t, K, c)
+    u0 = zeros(6)
+    u0[1] = N0
+    u0[2] = mcg2ions(c, 75)
+    tspan = (0.0, t)
+    prob = ODEProblem(bacteria_uptake,u0,tspan,K)
+    try
+        sol = solve(prob)
+    catch
+        error("Singular Error")
+    end
+end
 
-# Relative change of ions
-ion_sum(sol) = (sol[2,:] + (sol[5,:]+sol[6,:]).*sol[1,:])./G0
-plot(sol.t, ion_sum(sol), label="total")#, ylim=[0.0, 2.0])
-#plot!(sol.t, sol[2,:]/G0, label="in GI")
-#plot!(title="Relative change")
-#plot(sol, vars=[5 6])
-#plot!(sol.t,sol[4,:])
-plot!(sol.t, sol[5,:])
+function plot_init()
+    plot(layout=(3,2))
+end
+
+function plot_model(sol)
+    plot!(sol, layout=(4,2))
+end
+
+function plot_transport(G)
+    flux(C) = V_max/(1+k_m/C)
+    plot(flux.(G))
+end
+
+K = [V_max, k_m]
+plot_init()
+plot_model(colony_uptake(18.0, K, 0.25))
+#plot_transport(colony_uptake(18.0, K, 0.25)[2,:])
