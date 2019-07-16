@@ -62,8 +62,8 @@ function colony_uptake(t, K, c)
     prob = ODEProblem(bacteria_uptake,u0,tspan,K)
     try
         sol = solve(prob)
-    catch
-        error("Singular Error")
+    catch 
+
     end
 end
 
@@ -82,5 +82,7 @@ end
 
 K = [V_max, k_m]
 plot_init()
-plot_model(colony_uptake(50.0, K, 0.25))
+
+colony_uptake(5.0, K, 0.25)
+plot_model(colony_uptake(5.0, K, 0.25))
 #plot_transport(colony_uptake(18.0, K, 0.25)[2,:])

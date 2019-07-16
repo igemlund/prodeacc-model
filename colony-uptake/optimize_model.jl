@@ -29,7 +29,7 @@ f(x) = (loss_function(data1, ions_in_medium(t,x, 0.25))
     + loss_function(data3, ions_in_medium(t,x,0.125)))
 
 # Optimize
-res = optimize(f, k_init, NelderMead(), Optim.options(  g_tol=1e-9,
+res = optimize(f, k_init, NelderMead(), Optim.Options(  g_tol=1e-9,
                                                         show_trace=true))
 k_opt = Optim.minimizer(res)
 
