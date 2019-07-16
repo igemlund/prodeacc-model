@@ -38,14 +38,14 @@ bacteria_uptake = @ode_def begin
     dG =(-V_max/(1+k_m/(G/V_gut))*N*TP)    # Number of ions in gut
 
     # Single Bacteria
-    dTP = (k_tsl * mRNAᵀ                                 # Number of transporters
+    dTP = (k_tsl * mRNAᵀ                # Number of transporters
         - dN / N * TP
         - k_pro_deg * TP)
-    dAP_free = (k_tsl * mRNAᴬ                            # Number of free accumulators
+    dAP_free = (k_tsl * mRNAᴬ           # Number of free accumulators
         - dN / N * AP_free
         - k_CA * AP_free * C
         - k_pro_deg * AP_free)
-    dAP_occupied = (k_CA * AP_free * C                   # Number of occupied accumulators
+    dAP_occupied = (k_CA * AP_free * C  # Number of occupied accumulators
         - dN / N * AP_occupied
         - k_pro_deg * AP_occupied)
     dC = (V_max/(1+k_m/(G/V_gut))*TP    # Number of ions in cytoplasm
