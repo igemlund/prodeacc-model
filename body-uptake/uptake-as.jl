@@ -2,7 +2,7 @@
 using Plots
 using DifferentialEquations
 using ParameterizedFunctions
-using IterableTables, DataFrames
+using IterableTables
 
 Q_gi = 1440  #Blood flow to GI tract (l/day)
 Q_liv = 446.4 #Blood flow to liver (l/day)
@@ -197,14 +197,14 @@ arsenic_once = @ode_def begin #arsenic model for one time ingestion
     dUₙ = eUₙ * Kₙ
     dFₙ = eF * Gₙ
     dBilₙ = eB * Liₙ
-end a
+end eUₘ
 
 
-function arsenic_plot(intake,day,organ) #intake refers to the daily intake, organ refers to the order number of the organ in the differential equations (from 1 to 12)
+function arsenic_plot(intake,day,organ,K) #intake refers to the daily intake, organ refers to the order number of the organ in the differential equations (from 1 to 12)
     global initial = zeros(48)
     global initial[13] = intake
     global tspan = (0.0,1.0)
-    global prob = ODEProblem(arsenic_once,initial,tspan,1)
+    global prob = ODEProblem(arsenic_once,initial,tspan,K)
     global sol = solve(prob)
     global x = sol.t
     global y = sol[organ,:] + sol[organ + 12,:] + sol[organ + 24,:] + sol[organ + 36,:]
@@ -213,7 +213,7 @@ function arsenic_plot(intake,day,organ) #intake refers to the daily intake, orga
         global tspan = (i,i+1.0)
         global initial = sol[end]
         global initial[13] = initial[13] + intake
-        global prob = ODEProblem(arsenic_once,initial,tspan,1)
+        global prob = ODEProblem(arsenic_once,initial,tspan,K)
         global sol = solve(prob)
         global x = append!(x,sol.t)
         global y = append!(y,sol[organ,:] + sol[organ + 12,:] + sol[organ + 24,:] + sol[organ + 36,:])
@@ -221,4 +221,11 @@ function arsenic_plot(intake,day,organ) #intake refers to the daily intake, orga
     plot(x,y)
 end
 
-arsenic_plot(1e-3,100,6)
+arsenic_plot(1e-3,100,6,eUₘ)
+
+#initial = zeros(48)
+#initial[13] = 0.1
+#tspan = (0.0,1.0)
+#prob = ODEProblem(arsenic_once,initial,tspan,1)
+#sol = solve(prob)
+#plot(sol)
