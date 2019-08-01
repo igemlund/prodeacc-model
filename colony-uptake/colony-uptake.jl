@@ -4,7 +4,6 @@ using DifferentialEquations
 using ODEInterfaceDiffEq
 using ParameterizedFunctions
 using Plots
-pyplot()
 # http://book.bionumbers.org/how-many-proteins-are-made-per-mrna-molecule/
 # Constants
 Av = 6.022e23                       # Avogrado's number
@@ -32,15 +31,13 @@ N_max = 1e13                        # Assumed max amount of prodeacc in human gu
 # TODO: motvate this
 mRNAᵀ = 4
 mRNAᴬ = 4
+V_max = V_max * 1e-5
 bacteria_uptake = @ode_def begin
     # Colony
     dN = k_growth * N - k_growth * (N^2) / N_max                                    # Number of bacteria in gut
-    dG =(-V_max/(1+k_m/(G/V_gut))*N*TP)    # Number of ions in gut
+    dG =-V_max/(1+k_m/((G/V_gut-C/V_cell)/thickness))*N    # Number of ions in gut
 
     # Single Bacteria
-    dTP = (k_tsl * mRNAᵀ                # Number of transporters
-        - dN / N * TP
-        - k_pro_deg * TP)
     dAP_free = (k_tsl * mRNAᴬ           # Number of free accumulators
         - dN / N * AP_free
         - k_CA * AP_free * C
@@ -48,23 +45,19 @@ bacteria_uptake = @ode_def begin
     dAP_occupied = (k_CA * AP_free * C  # Number of occupied accumulators
         - dN / N * AP_occupied
         - k_pro_deg * AP_occupied)
-    dC = (V_max/(1+k_m/(G/V_gut))*TP    # Number of ions in cytoplasm
+    dC = (V_max/(1+k_m/((V_gut-C/V_cell)/thickness))    # Number of ions in cytoplasm
         - k_CA * C * AP_free
         + k_pro_deg * AP_occupied
         - dN / N * C)
 end V_max k_m
 
 function colony_uptake(t, K, c)
-    u0 = zeros(6)
+    u0 = zeros(5)
     u0[1] = N0
     u0[2] = mcg2ions(c, 75)
     tspan = (0.0, t)
     prob = ODEProblem(bacteria_uptake,u0,tspan,K)
-    try
-        sol = solve(prob)
-    catch 
-
-    end
+    sol = solve(prob)
 end
 
 function plot_init()
@@ -72,7 +65,12 @@ function plot_init()
 end
 
 function plot_model(sol)
-    plot!(sol, layout=(4,2))
+    p1 = plot(sol, vars=[1], label="Number of cells", color="Red")
+    p2 = plot(sol, vars=[2], label="Ions in medium", color="Blue")
+    p3 = plot(sol, vars=[3,4,5], label=["Free accumulators" "Occupied accumulators" "Ions in cytoplasm"])
+    sum_of_ions = sol[2,:].+sol[1,:].*(sol[4,:].+sol[5,:])
+    control = plot(sol.t, sum_of_ions, label="Total ions (shoud be constant)", color="Black")
+    plot(p1, p2, p3, control, layout=(2,2))
 end
 
 function plot_transport(G)
@@ -81,8 +79,9 @@ function plot_transport(G)
 end
 
 K = [V_max, k_m]
+plotlyjs()
+plot()
 plot_init()
-
-colony_uptake(5.0, K, 0.25)
-plot_model(colony_uptake(5.0, K, 0.25))
+sol = colony_uptake(50.0, K, 0.25)
+plot_model(sol)
 #plot_transport(colony_uptake(18.0, K, 0.25)[2,:])
