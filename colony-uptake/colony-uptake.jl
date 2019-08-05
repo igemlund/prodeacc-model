@@ -63,7 +63,7 @@ function colony_uptake(t, K, c)
     tspan = (0.0, t)
     prob = ODEProblem(bacteria_uptake,u0,tspan,K)
     successful = true
-    sol = solve(prob)
+    sol = solve(prob, isoutofdomain=(u,p,t) -> any(x -> x < 0, u))
 end
 
 function plot_init()
@@ -71,11 +71,19 @@ function plot_init()
 end
 
 function plot_model(sol)
-    p1 = plot(sol, vars=[1], label="Number of cells", color="Red")
-    p2 = plot(sol, vars=[2], label="Ions in medium", color="Blue", ylims=(0, sol[2,1]))
-    p3 = plot(sol, vars=[3,4,5,6], label=["Transporters" "Free accumulators" "Occupied accumulators" "Ions in cytoplasm"])
+    p1 = plot(sol, vars=[1],
+        label="Number of cells",
+        color="Red")
+    p2 = plot(sol, vars=[2],
+        label="Ions in medium",
+        color="Blue",
+        yscale=:log10)
+    p3 = plot(sol,
+        vars=[3,4,5],
+        label=["Transporters" "Free accumulators" "Occupied accumulators"],
+        yscale=:log10)
     sum_of_ions = sol[2,:].+sol[1,:].*(sol[5,:].+sol[6,:])
-    control = plot(sol.t, sum_of_ions,
+    control = plot(sol.t,sum_of_ions,
         label="Total ions (shoud be constant)",
         color="Black",
         linewidth=2,
