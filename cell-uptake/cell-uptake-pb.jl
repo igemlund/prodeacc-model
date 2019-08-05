@@ -4,8 +4,7 @@
 using DifferentialEquations
 using ParameterizedFunctions
 using Plots
-plotly()
-plot()
+
 Av = 6.022e23                       # Avogrado's number
 V_cell = 8e-16                      # Cell volume   [l]
 
@@ -17,18 +16,9 @@ tlr_pbrR = 3.32         # [/min]
 tlr_pbrD = 15.88        # [/min]
 tlr_pbrT = 5.98         # [/min]
 
-# Gene Lengths
-pbrD_length = 726       # [bp]
-pbrR_length = 438       # bp
-pbrT_length = 1929      # bp
-
 # Degradation
 k_mrna_deg = 0.0693     # [/min]
 k_pro_deg = 0.0333      #
-5/k_mrna_deg
-# Affinity
-# aff_pbrR = 40e-6*1000*V_cell*207.2
-aff_pbrD = 9.86e-5      # Fraction of removed pb per pbrR
 
 pbrD_uptake = @ode_def begin
     dmRNA_pbrD = tsc - k_mrna_deg * mRNA_pbrD
