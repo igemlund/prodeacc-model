@@ -35,7 +35,7 @@ bacteria_uptake = @ode_def begin
     dmRNA = tsc - k_rna_deg * mRNA
 end k_growth N_max k_tsl tsc k_rna_deg k_pro_deg V_max k_m k_CA k_CG N0 G0 c
 
-function colony_model(t, symbols::Tuple{Symbol,Float64}...)
+function colony_model(t, symbols::Array{}=[])
     p = ([(:k_growth, log(2)/1)         # Growth rate, double every 30 min. [/h]
     (:N_max, 1e13)                      # Max number of cells
     (:k_tsl, 0.075*1e-9*Av*V_cell*60)   # Translation rate [/h]
@@ -90,6 +90,6 @@ function plot_model(sol)
     plot(p1, p2, p3, control, layout=(2,2))
 end
 
-#sol = colony_model(20.0)
+#sol = colony_model(20.0, [(:N0, 1e10)])
 #plot_init()
 #plot_model(sol)
