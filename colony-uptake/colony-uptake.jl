@@ -12,24 +12,6 @@ const V_gut = 1.2             # Gut volume    [l]
 ions2mcg(ions, molarmass) = ions/Av*molarmass*1e6
 mcg2ions(mcg, molarmass) = mcg*1e-6/molarmass*Av
 
-# Rates
-const k_tsl = 1*60*60                     # Translation rate [/h]
-const k_rna_deg = 20.79                   # RNA degradation rate [/h]
-const k_growth = log(2)/1                 # Growth rate, double every 30 min. [/h]
-const k_pro_deg = 0.1                     # Effective Protein degradation rate [/h]
-
-# Unknowns
-V_max = 3.5676e-4                       # unknown [ion/h/TP]
-k_m = 3.9e-6*Av                         # unknown [ion/m^3]
-k_CA = 0.1                              # unknown Accumulation protein capture rate
-k_CG = 0.01                             # unknonw Ions Cytoplasm --> Gut
-
-# Start conditions
-const G0 = mcg2ions(0.25, 75) * V_gut     # Gut start amount
-const N0 = 1e9                            # Bacteria start amount
-const N_max = 1e13                        # Assumed max amount of prodeacc in human gut
-const mRNA =  80                          # From singel cell model
-
 bacteria_uptake = @ode_def begin
     # Colony
     dN = k_growth * N - k_growth * (N^2) / N_max    # Number of bacteria in gut
@@ -50,19 +32,36 @@ bacteria_uptake = @ode_def begin
         - k_CA * C * AP_free
         + k_pro_deg * AP_occupied
         - dN/N * C)
-end V_max k_m k_CA
+    dmRNA = tsc - k_rna_deg * mRNA
+end k_growth N_max k_tsl tsc k_rna_deg k_pro_deg V_max k_m k_CA k_CG N0 G0 c
 
-function colony_uptake(t, K, c)
-    u0 = zeros(6)
-    u0[1] = N0
-    u0[2] = mcg2ions(c, 75)
-    u0[3] = 1e-3
-    u0[4] = 1e-3
-    u0[5] = 1e-3
-    u0[6] = 1e-3
+function colony_model(t, symbols::Tuple{Symbol,Float64}...)
+    p = ([(:k_growth, log(2)/1)         # Growth rate, double every 30 min. [/h]
+    (:N_max, 1e13)                      # Max number of cells
+    (:k_tsl, 0.075*1e-9*Av*V_cell*60)   # Translation rate [/h]
+    (:tsc, 15*60)                       # Transcription rate [/h]
+    (:k_rna_deg, 20.79)                 # RNA degradation rate [/h]
+    (:k_pro_deg, 0.1)                   # Protein degradation rate [/h]
+    (:V_max, 3.5676e-1)                 # unknown [ion/h/TP]
+    (:k_m, 3.9e-6*Av*1e-4)              # unknown [ion/m^3]
+    (:k_CA, 0.1)                        # unknown Accumulation protein capture rate
+    (:k_CG, 0.01)                       # unknonw Ions Cytoplasm --> Gut
+    (:N0, 1e9)                          # Number of cells at start
+    (:G0, mcg2ions(0.25, 75)*V_gut)])     # Gut start amount
+
+    k = map(x -> x[2], p)
+    for s in symbols k[findfirst(x -> x[1] === s[1], p)] = s[2] end
+
+    u0 = zeros(7)
+    u0[1] = k[11]
+    u0[2] = k[12]
+    u0[3] = 1e-10
+    u0[4] = 1e-10
+    u0[5] = 1e-10
+    u0[6] = 1e-10
     tspan = (0.0, t)
-    prob = ODEProblem(bacteria_uptake,u0,tspan,K)
-    successful = true
+
+    prob = ODEProblem(bacteria_uptake,u0,tspan,k)
     sol = solve(prob, isoutofdomain=(u,p,t) -> any(x -> x < 0, u))
 end
 
@@ -91,15 +90,6 @@ function plot_model(sol)
     plot(p1, p2, p3, control, layout=(2,2))
 end
 
-function plot_transport(G)
-    flux(C) = V_max/(1+k_m/C)
-    plot(flux.(G))
-end
-
-K = [V_max, k_m, k_CA]
-plotlyjs()
-plot()
-plot_init()
-sol = colony_uptake(20.0, K, 0.25)
-plot_model(sol)
-#plot_transport(colony_uptake(18.0, K, 0.25)[2,:])
+#sol = colony_model(20.0)
+#plot_init()
+#plot_model(sol)
