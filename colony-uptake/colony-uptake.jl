@@ -52,14 +52,17 @@ function colony_model(t, symbols::Array{}=[])
     (:lag_phase, 2.0)
     (:induced_time, 4.0)])
 
-    # Replace values
-    k = map(x -> x[2], p)
-    for s in symbols k[findfirst(x -> x[1] === s[1], p)] = s[2] end
+    value(key::Symbol) = p[findfirst(x -> x[1] == key, p)][2]
+    index(key::Symbol) = findfirst(x -> x[1] == key, p)
 
-    # Set initial condidions
+    # Replace values
+    for s in symbols p[index(s[1])] = (s[1], s[2]) end
+    k = map(x -> x[2], p)
+
+    # Set initial condidionsge
     u0 = zeros(7)
-    u0[1] = k[11]
-    u0[2] = k[12]
+    u0[1] = value(:N0)
+    u0[2] = value(:G0)
     u0[3] = 1e-10
     u0[4] = 1e-10
     u0[5] = 1e-10
@@ -68,14 +71,24 @@ function colony_model(t, symbols::Array{}=[])
 
     prob = ODEProblem(bacteria_uptake,u0,tspan,k)
     sol = solve(prob, isoutofdomain=(u,p,t) -> any(x -> x < 0, u))
-    sol.t[2:end] .+= 4.0
+
+    # Ajust for lag phase
+    sol.t .+= value(:lag_phase)
+    pushfirst!(sol.u, u0)
+    pushfirst!(sol.t, value(:lag_phase)-0.01)
+    pushfirst!(sol.t, 0.0)
+    pushfirst!(sol.k, repeat([float(zeros(7))], 7))
+    pushfirst!(sol.k, repeat([float(zeros(7))], 7))
+    pushfirst!(sol.alg_choice, 1)
+    pushfirst!(sol.alg_choice, 1)
+    sol.k[2][:] .= [float(zeros(7))]
+
     sol
 end
 
 function plot_init()
     plot(layout=(3,2))
 end
-
 function plot_model(sol)
     p1 = plot(sol, vars=[1],
         label="Number of cells",
@@ -83,11 +96,11 @@ function plot_model(sol)
     p2 = plot(sol, vars=[2],
         label="Ions in medium",
         color="Blue",
-        yscale=:none)
+        yscale=:identity)
     p3 = plot(sol,
         vars=[3,4,5],
         label=["Transporters" "Free accumulators" "Occupied accumulators"],
-        yscale=:none)
+        yscale=:identity)
     sum_of_ions = sol[2,:].+sol[1,:].*(sol[5,:].+sol[6,:])
     control = plot(sol.t,sum_of_ions,
         label="Total ions (shoud be constant)",
@@ -97,7 +110,7 @@ function plot_model(sol)
     plot(p1, p2, p3, control, layout=(2,2))
 end
 
-sol = colony_model(20.0, [(:N0, 1e10)])
-sol
+sol = colony_model(20.0, [(:lag_phase, 1.0)])
+sol.k[2][:]
 plot_init()
 plot_model(sol)
