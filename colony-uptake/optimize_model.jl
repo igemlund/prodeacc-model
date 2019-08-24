@@ -16,6 +16,19 @@ function ions_in_medium(t, k, c)
     end
 end
 
+function target_data(time_points, output_int, p::Array{})
+    # Returns inf if the solution does not converge.
+    try
+        sol = colony_model(time_points[end], p)(time_points)[output_int,:]
+    catch e
+        @warn "Did not converge."
+        @warn e
+        sol = repeat([Inf], length(time_points))
+    end
+end
+
+target_data([1.0, 20.0], 1, [(:N0, 1e9), (:k_growth, 0.5)])
+
 # Optimizers
 function opt_particle_swarm(k_init, iterations=1000, timelimit=1000)
     lower_bound = [V_max, k_m, k_CA].*1e-2
@@ -108,6 +121,12 @@ function opt_bech_test(iterations)
 
     return nm_trace, pso_trace, pso_nm_trace
 end
+
+if !isdefined(:__init__) || Base.function_module(__init__) != MyModule
+  main()
+end
+
+function main()
 k_init = [V_max*1000, k_m/50, k_CA/2]
 k_data = [V_max, k_m, k_CA]
 t = 0.0:1:5.0
@@ -174,4 +193,4 @@ function Base.show(io::IO, x::Union{Float64,Float32})
     Base.Grisu._show(io, round(x, sigdigits=3), Base.Grisu.SHORTEST, 0, get(io, :typeinfo, Any) !== typeof(x), false)
 end
 pretty_table(results , ["State" "Cost" "V_max" "k_m" "k_CA" "time"])
-@save "2019-08-09"
+end
