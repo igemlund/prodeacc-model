@@ -90,6 +90,6 @@ function plot_model(sol)
     plot(p1, p2, p3, control, layout=(2,2))
 end
 
-#sol = colony_model(20.0, [(:N0, 1e10)])
-#plot_init()
-#plot_model(sol)
+sol = colony_model(20.0, [(:N0, 1e10)])
+plot_init()
+plot_model(sol)
