@@ -37,6 +37,10 @@ bacteria_uptake = @ode_def begin
 end k_growth N_max k_tsl tsc k_rna_deg k_pro_deg V_max k_m k_CA k_CG N0 G0 c lag ind
 
 function colony_model(t, symbols::Array{}=[])
+    value(key::Symbol) = p[findfirst(x -> x[1] == key, p)][2]
+    index(key::Symbol) = findfirst(x -> x[1] == key, p)
+
+    # Parameters
     p = ([(:k_growth, log(2)/1)         # Growth rate, double every 30 min. [/h]
     (:N_max, 1e13)                      # Max number of cells
     (:k_tsl, 0.075*1e-9*Av*V_cell*60)   # Translation rate [/h]
@@ -49,41 +53,61 @@ function colony_model(t, symbols::Array{}=[])
     (:k_CG, 0.01)                       # unknonw Ions Cytoplasm --> Gut
     (:N0, 1e9)                          # Number of cells at start
     (:G0, mcg2ions(0.25, 75)*V_gut)     # Gut start amount
-    (:lag_phase, 2.0)
-    (:induced_time, 4.0)])
-
-    value(key::Symbol) = p[findfirst(x -> x[1] == key, p)][2]
-    index(key::Symbol) = findfirst(x -> x[1] == key, p)
+    (:lag_phase, 3.0)
+    (:induced_time, 6.0)])
 
     # Replace values
     for s in symbols p[index(s[1])] = (s[1], s[2]) end
     k = map(x -> x[2], p)
 
     # Set initial condidionsge
-    u0 = zeros(7)
-    u0[1] = value(:N0)
-    u0[2] = value(:G0)
-    u0[3] = 1e-10
-    u0[4] = 1e-10
-    u0[5] = 1e-10
-    u0[6] = 1e-10
-    tspan = (0.0, t)
+    u0_1 = zeros(7)
+    u0_1[1] = value(:N0)
+    u0_1[2] = value(:G0)
+    u0_1[3] = 1e-10
+    u0_1[4] = 1e-10
+    u0_1[5] = 1e-10
+    u0_1[6] = 1e-10
 
-    prob = ODEProblem(bacteria_uptake,u0,tspan,k)
-    sol = solve(prob, isoutofdomain=(u,p,t) -> any(x -> x < 0, u))
+    t_lag = value(:lag_phase)
+    t_ind = value(:induced_time)
+
+    # Solve before induced_time
+    k[4] = 0
+    tspan1 = (0.0, t_ind)
+    prob1 = ODEProblem(bacteria_uptake,u0_1,tspan1,k)
+    sol1 = solve(prob1, isoutofdomain=(u,p,t) -> any(x -> x < 0, u))
 
     # Ajust for lag phase
-    sol.t .+= value(:lag_phase)
-    pushfirst!(sol.u, u0)
-    pushfirst!(sol.t, value(:lag_phase)-0.01)
-    pushfirst!(sol.t, 0.0)
-    pushfirst!(sol.k, repeat([float(zeros(7))], 7))
-    pushfirst!(sol.k, repeat([float(zeros(7))], 7))
-    pushfirst!(sol.alg_choice, 1)
-    pushfirst!(sol.alg_choice, 1)
-    sol.k[2][:] .= [float(zeros(7))]
+    sol1.t .+= t_lag
+    pushfirst!(sol1.u, u0_1)
+    pushfirst!(sol1.t, t_lag-0.01)
+    pushfirst!(sol1.t, 0.0)
+    pushfirst!(sol1.k, repeat([float(zeros(7))], 7))
+    pushfirst!(sol1.k, repeat([float(zeros(7))], 7))
+    pushfirst!(sol1.alg_choice, 1)
+    pushfirst!(sol1.alg_choice, 1)
+    sol1.k[2][:] .= [float(zeros(7))]
 
-    sol
+    # Solve after induced_time
+    k[4] = value(:tsc)
+    tspan2 = (0, t-(t_lag + t_ind))
+    u0_2 = sol1.u[end]
+    prob2 = ODEProblem(bacteria_uptake,u0_2,tspan2,k)
+    sol2 = solve(prob2, isoutofdomain=(u,p,t) -> any(x -> x < 0, u))
+    sol2.t .+= t_ind + t_lag
+
+    # Append solutions
+    append!(sol1.u, sol2.u)
+    append!(sol1.t, sol2.t)
+    sol2.k[1]=sol1.k[end]
+    append!(sol1.k, sol2.k)
+    append!(sol1.alg_choice, sol2.alg_choice)
+    display(sol(value(:lag_phase))[1])
+    display(sol(value(:lag_phase)+0.1)[1])
+    display(sol(value(:induced_time))[1]-0.1)
+    display(sol(value(:induced_time))[1]+0.1)
+    sol1
 end
 
 function plot_init()
@@ -110,7 +134,6 @@ function plot_model(sol)
     plot(p1, p2, p3, control, layout=(2,2))
 end
 
-sol = colony_model(20.0, [(:lag_phase, 1.0)])
-sol.k[2][:]
+sol = colony_model(20.0, [(:induced_time, 5)])
 plot_init()
 plot_model(sol)
