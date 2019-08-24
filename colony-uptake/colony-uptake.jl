@@ -53,8 +53,8 @@ function colony_model(t, symbols::Array{}=[])
     (:k_CG, 0.01)                       # unknonw Ions Cytoplasm --> Gut
     (:N0, 1e9)                          # Number of cells at start
     (:G0, mcg2ions(0.25, 75)*V_gut)     # Gut start amount
-    (:lag_phase, 3.0)
-    (:induced_time, 6.0)])
+    (:lag_phase, 3.0)                   # Lag phase duration [h]
+    (:induced_time, 6.0)])              # Induction time [h]
 
     # Replace values
     for s in symbols p[index(s[1])] = (s[1], s[2]) end
@@ -72,9 +72,13 @@ function colony_model(t, symbols::Array{}=[])
     t_lag = value(:lag_phase)
     t_ind = value(:induced_time)
 
-    # Solve before induced_time
-    k[4] = 0
-    tspan1 = (0.0, t_ind)
+    # Solve before induced_time if induced_time =!
+    if t_ind != 0
+        k[4]=0
+        tspan1 = (0.0, t_ind)
+    else
+        tspan1 = (0.0, t)
+    end
     prob1 = ODEProblem(bacteria_uptake,u0_1,tspan1,k)
     sol1 = solve(prob1, isoutofdomain=(u,p,t) -> any(x -> x < 0, u))
 
@@ -88,6 +92,9 @@ function colony_model(t, symbols::Array{}=[])
     pushfirst!(sol1.alg_choice, 1)
     pushfirst!(sol1.alg_choice, 1)
     sol1.k[2][:] .= [float(zeros(7))]
+    if t_ind == 0
+        return sol1
+    end
 
     # Solve after induced_time
     k[4] = value(:tsc)
@@ -134,6 +141,6 @@ function plot_model(sol)
     plot(p1, p2, p3, control, layout=(2,2))
 end
 
-sol = colony_model(20.0, [(:induced_time, 5)])
+sol = colony_model(20.0, [(:induced_time, 0)])
 plot_init()
 plot_model(sol)
