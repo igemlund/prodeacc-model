@@ -72,10 +72,10 @@ function colony_model(t, symbols::Array{}=[])
     t_lag = value(:lag_phase)
     t_ind = value(:induced_time)
 
-    # Solve before induced_time if induced_time =!
+    # Solve before induced_time if induced_time =! 0
     if t_ind != 0
-        k[4]=0
-        tspan1 = (0.0, t_ind)
+        k[4]=0 # Transcription rate
+        tspan1 = (0.0, t_ind-t_lag)
     else
         tspan1 = (0.0, t)
     end
@@ -98,11 +98,11 @@ function colony_model(t, symbols::Array{}=[])
 
     # Solve after induced_time
     k[4] = value(:tsc)
-    tspan2 = (0, t-(t_lag + t_ind))
+    tspan2 = (0, t-t_ind)
     u0_2 = sol1.u[end]
     prob2 = ODEProblem(bacteria_uptake,u0_2,tspan2,k)
     sol2 = solve(prob2, isoutofdomain=(u,p,t) -> any(x -> x < 0, u))
-    sol2.t .+= t_ind + t_lag
+    sol2.t .+= t_ind
 
     # Append solutions
     append!(sol1.u, sol2.u)
@@ -110,10 +110,6 @@ function colony_model(t, symbols::Array{}=[])
     sol2.k[1]=sol1.k[end]
     append!(sol1.k, sol2.k)
     append!(sol1.alg_choice, sol2.alg_choice)
-    display(sol(value(:lag_phase))[1])
-    display(sol(value(:lag_phase)+0.1)[1])
-    display(sol(value(:induced_time))[1]-0.1)
-    display(sol(value(:induced_time))[1]+0.1)
     sol1
 end
 
@@ -141,6 +137,6 @@ function plot_model(sol)
     plot(p1, p2, p3, control, layout=(2,2))
 end
 
-sol = colony_model(20.0, [(:induced_time, 0)])
+sol = colony_model(20.0, [(:lag_phase, 6.0), (:induced_time, 6.0)])
 plot_init()
 plot_model(sol)
