@@ -16,14 +16,31 @@ function export_to_after_effects(sol, name, n_values)
         end
     end
 
-    display(u)
-    foreach(x -> x ./=max_values, u)
-    display(u)
     df = DataFrame(sol')
     [df[col] ./= max_values[col]' for col in 1:length(max_values)]
-    [df[i] = map(x -> round(x, digits=10), df[i]) for i in 1:length(max_values)]
+    [df[i] = map(x -> float_to_string(round(x, digits=5)), df[i]) for i in 1:length(max_values)]
     display(df)
     CSV.write("$name.csv", df)#, head=false)
+end
+
+function float_to_string(float)
+    s = string(float)
+    i = findfirst("e", s)
+
+    if i == nothing
+        return s
+    else
+        i = i[1]
+    end
+
+    if float >= 1
+        exp = parse(Int8, s[i+1:end])
+    else
+        exp = parse(Int8, s[i+2:end])
+    end
+        s = s[1:i-1]
+        s *= repeat("0", exp)
+    return s
 end
 
 export_to_after_effects(sol, "test_round", 400)
