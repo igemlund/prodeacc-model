@@ -53,8 +53,8 @@ function colony_model(t, symbols::Array{}=[])
     (:k_CG, 0.01)                       # unknonw Ions Cytoplasm --> Gut
     (:N0, 1e9)                          # Number of cells at start
     (:G0, mcg2ions(0.25, 75)*V_gut)     # Gut start amount
-    (:lag_phase, 3.0)                   # Lag phase duration [h]
-    (:induced_time, 6.0)])              # Induction time [h]
+    (:lag_phase, 0.0)                   # Lag phase duration [h]
+    (:induced_time, 0.0)])              # Induction time [h]
 
     # Replace values
     for s in symbols p[index(s[1])] = (s[1], s[2]) end
@@ -116,6 +116,7 @@ end
 function plot_init()
     plot(layout=(3,2))
 end
+
 function plot_model(sol)
     p1 = plot(sol, vars=[1],
         label="Number of cells",
@@ -137,6 +138,6 @@ function plot_model(sol)
     plot(p1, p2, p3, control, layout=(2,2))
 end
 
-sol = colony_model(20.0, [(:lag_phase, 6.0), (:induced_time, 6.0)])
+sol = colony_model(40.0, [(:lag_phase, 0.0), (:induced_time, 0.0)])
 plot_init()
 plot_model(sol)
