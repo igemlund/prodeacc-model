@@ -1,6 +1,8 @@
 using DifferentialEquations
 using ParameterizedFunctions
 using Plots
+include("../export_data.jl")
+
 
 #Based on dede et al 2018
 const Q_liv = 1084.3 #Blood plasma flow to liver (L/day)
@@ -86,6 +88,7 @@ end
 function plotting(intake, duration, range, compartment) #intake is in mg/day, duration is in days, compartment is the order of compartment in the differential equations (from 1 to 11)
     A = solving(intake,zeros(10),(0.0,duration))
     B = solving(0.0, A[end],(duration,range))
+    export_to_after_effects(A,"lead_body", 500)
 
     if compartment == 11   #compartment 11 is whole blood concentration
         plot!(A.t, wholeblood_conc(A))
@@ -98,4 +101,4 @@ end
 
 
 plot()
-plotting(105e-3,82.0,300.0,11) #figure 10 subject D in dede et al
+plotting(105e-3,100.0,300.0,1) #figure 10 subject D in dede et al

@@ -3,6 +3,7 @@ using Plots
 using DifferentialEquations
 using ParameterizedFunctions
 using IterableTables
+include("../export_data.jl")
 
 const Q_gi = 1440  #Blood flow to GI tract (l/day)
 const Q_liv = 446.4 #Blood flow to liver (l/day)
