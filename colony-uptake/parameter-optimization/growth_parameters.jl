@@ -1,5 +1,7 @@
 using CSV
 using Optim
+include("../optimize_model.jl")
+
 
 T1 = CSV.read("T1.csv")
 ind = [1, 5, 8]
@@ -17,13 +19,12 @@ options = Optim.Options(show_trace=true,
                         time_limit=1000)
 
 # k_growth, N_max
-upper = [log(2)/0.1, 3e10, 4.0]
-lower = [log(2)/2, 1e5, 0.5]
-k_init = [log(2)/1, 1e6, 2.0]
+upper = [log(2)/0.3, 7e8, 6.0]
+lower = [log(2)/2, 1e6, 3.0]
+k_init = [log(2)/1, 2e6, 4.0]
 
 alg = ParticleSwarm(n_particles=6, lower=lower, upper=upper)
 #alg = NelderMead()
-
 time = @elapsed res = optimize(f, k_init,alg, options)
 k_growth, N_max, lag_phase = res.minimizer
 plotlyjs()
