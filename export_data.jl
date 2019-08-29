@@ -18,14 +18,18 @@ function export_to_after_effects(sol, name, n_values)
 
     df = DataFrame(sol')
     [df[col] ./= max_values[col]' for col in 1:length(max_values)]
-    [df[i] = map(x -> float_to_string(round(x, digits=5)), df[i]) for i in 1:length(max_values)]
     display(df)
+    [df[i] = map(x -> float_to_string(round(x, digits=5)), df[i]) for i in 1:length(max_values)]
     CSV.write("$name.csv", df)#, head=false)
 end
 
 function float_to_string(float)
     s = string(float)
     i = findfirst("e", s)
+
+    if s == "NaN"
+        return "0.0"
+    end
 
     if i == nothing
         return s
@@ -42,5 +46,3 @@ function float_to_string(float)
         s *= repeat("0", exp)
     return s
 end
-
-export_to_after_effects(sol, "test_round", 400)
