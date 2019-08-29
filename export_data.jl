@@ -18,8 +18,8 @@ function export_to_after_effects(sol, name, n_values)
 
     df = DataFrame(sol')
     [df[col] ./= max_values[col]' for col in 1:length(max_values)]
+    [df[i] = map(x -> float_to_string(round(x, digits=4)), df[i]) for i in 1:length(max_values)]
     display(df)
-    [df[i] = map(x -> float_to_string(round(x, digits=5)), df[i]) for i in 1:length(max_values)]
     CSV.write("$name.csv", df)#, head=false)
 end
 
@@ -39,10 +39,14 @@ function float_to_string(float)
 
     if float >= 1
         exp = parse(Int8, s[i+1:end])
-    else
-        exp = parse(Int8, s[i+2:end])
-    end
         s = s[1:i-1]
         s *= repeat("0", exp)
+    else
+        exp = parse(Int8, s[i+2:end])
+        if s[1] != "0"
+            exp -=1
+            s = "0."*repeat("0", exp)*s[1]*s[3:i-1]
+        end
+    end
     return s
 end
