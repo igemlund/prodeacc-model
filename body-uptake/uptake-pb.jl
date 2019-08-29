@@ -3,48 +3,48 @@ using ParameterizedFunctions
 using Plots
 
 #Based on dede et al 2018
-Q_liv = 1084.3 #Blood plasma flow to liver (L/day)
-Q_kid = 737.3 #Blood plasma flow to kidney (L/day)
-Q_bone = 130.1
-Q_wp = 86.74 #Blood plasma flow to well-perfused kidney (L/day)
-Q_pp = 346.98 #Blood plasma flow to poorly-perfused kidney
+const Q_liv = 1084.3 #Blood plasma flow to liver (L/day)
+const Q_kid = 737.3 #Blood plasma flow to kidney (L/day)
+const Q_bone = 130.1
+const Q_wp = 86.74 #Blood plasma flow to well-perfused kidney (L/day)
+const Q_pp = 346.98 #Blood plasma flow to poorly-perfused kidney
 
-V_liv = 1.75 #Volume of liver (L)
-V_kid = 0.29 #kidney (L)
-V_bone = 9.8
-V_blood = 5.11
-V_plas = 2.81 #plasma
-V_wp = 1.96
-V_pp = 58.24
+const V_liv = 1.75 #Volume of liver (L)
+const V_kid = 0.29 #kidney (L)
+const V_bone = 9.8
+const V_blood = 5.11
+const V_plas = 2.81 #plasma
+const V_wp = 1.96
+const V_pp = 58.24
 
-P_liv = 100 #Partion coefficient, liver/plasma (no unit)
-P_kid = 100
-P_wp = 100
-P_pp = 20
-P_bone = 1000
+const P_liv = 100 #Partion coefficient, liver/plasma (no unit)
+const P_kid = 100
+const P_wp = 100
+const P_pp = 20
+const P_bone = 1000
 
 #transfer rate from organs to blood-plasma (per day)
-k_LiB = Q_liv/(V_liv*P_liv)
-k_KB = Q_kid/(V_kid*P_kid)
-k_BoB = Q_bone/(V_bone*P_bone)
-k_WB = Q_wp/(V_wp*P_wp)
-k_PB = Q_pp/(V_pp*P_pp)
+const k_LiB = Q_liv/(V_liv*P_liv)
+const k_KB = Q_kid/(V_kid*P_kid)
+const k_BoB = Q_bone/(V_bone*P_bone)
+const k_WB = Q_wp/(V_wp*P_wp)
+const k_PB = Q_pp/(V_pp*P_pp)
 
 #transfer rate from blood-plasma to organs (per day)
-k_BLi = Q_liv/V_plas
-k_BK = Q_kid/V_plas
-k_BW = Q_wp/V_plas
-k_BBo = Q_bone/V_plas
-k_BP = Q_pp/V_plas
+const k_BLi = Q_liv/V_plas
+const k_BK = Q_kid/V_plas
+const k_BW = Q_wp/V_plas
+const k_BBo = Q_bone/V_plas
+const k_BP = Q_pp/V_plas
 
-A_gi = 0.06 #PB absorption coefficient from GI tract, ranges from 0.06 to 0.12 (unitless)
-eU = 0.47 #(/day)
-eB = 0.2 #(/day)
+const A_gi = 0.06 #PB absorption coefficient from GI tract, ranges from 0.06 to 0.12 (unitless)
+const eU = 0.47 #(/day)
+const eB = 0.2 #(/day)
 
-HCT = 0.45 # haematocrit fraction of whole blood
-R = 1.2 #ratio of unbound erythrocyte PB concentration to plasma PB concentration
-BIND = 0.437 #Pb binding capacity of erythrocytes (mg Pb L⁻¹ cell)
-KBIND = 3.72e-4 #Binding constant of erythrocytes (mg Pb L⁻¹ cell)
+const HCT = 0.45 # haematocrit fraction of whole blood
+const R = 1.2 #ratio of unbound erythrocyte PB concentration to plasma PB concentration
+const BIND = 0.437 #Pb binding capacity of erythrocytes (mg Pb L⁻¹ cell)
+const KBIND = 3.72e-4 #Binding constant of erythrocytes (mg Pb L⁻¹ cell)
 
 lead = @ode_def begin #ODE system for constant intake of lead per day over several days
     dG =  IR_gi - A_gi * IR_gi - (1 - A_gi) * IR_gi  #IR_gi = oral intake rate  of Pb (mg/day) (given in solving function) #amount in gut

@@ -4,32 +4,32 @@ using DifferentialEquations
 using ParameterizedFunctions
 using IterableTables, DataFrames
 
-K = 12.9870         #Constant ratio Q⬚(t)/B⬚(t)
+const K = 12.9870         #Constant ratio Q⬚(t)/B⬚(t)
 # ---- Rates [days^-1] ----
 # Organic mercury
-k_abs = 5.5440      # Oral absorption rate constant
-k_QI  = 0.01347     # Metabolism rate constant of organic mercury to inorganic mercury
-k_QF  = 9.0668e-5   # Whole body to feces transfer coefficient of organic mercury
-k_QU  = 0           # Whole body to urine transfer coefficient of organic mercury
-k_QH  = 2.3825e-4   # Whole body to hair transfer coefficient of organic mercury
-k_elim = k_QU + k_QF + k_QI + k_QH  # Whole body elimination rate constant of
+const k_abs = 5.5440      # Oral absorption rate constant
+const k_QI  = 0.01347     # Metabolism rate constant of organic mercury to inorganic mercury
+const k_QF  = 9.0668e-5   # Whole body to feces transfer coefficient of organic mercury
+const k_QU  = 0           # Whole body to urine transfer coefficient of organic mercury
+const k_QH  = 2.3825e-4   # Whole body to hair transfer coefficient of organic mercury
+const k_elim = k_QU + k_QF + k_QI + k_QH  # Whole body elimination rate constant of
                                     # organic mercury
 
 # Incorganic mercury
-d_BL = 0.1750       # Blood to liver transfer coefficient combined with liver
+const d_BL = 0.1750       # Blood to liver transfer coefficient combined with liver
                     # metabolism rate constant of organic mercury
-d_BBr = d_BL/1000   # Blood to brain transfer coefficient combined with brain
+const d_BBr = d_BL/1000   # Blood to brain transfer coefficient combined with brain
                     # metabolism rate constant of organic mercury
-k_LB = 0.8940       # Liver to blood transfer coefficient of inorganic mercury
-k_BK = 17.1234      # Blood to kidney transfer coefficient of inorganic mercury
-k_KB = 0.0010       # Kidney to blood transfer coefficient of inorganic mercury
-k_KU = 0.006949     # Kidney to urine transfer coefficient of inorganic mercury
-k_BH = 0.1400       # Blood to hair transfer coefficient of inorganic mercury
-k_BU = 0.06994      # Blood to urine transfer coefficient of inorganic mercury
-k_BF = 3.9917       # Blood to feces transfer coefficient of inorganic mercury
-k_LF = 1.5476       # Liver to feces transfer coefficient of inorganic mercury
-k_BBr = 0.0028      # Blood to brain transfer coefficient of inorganic mercury
-k_BrB = 0.0520      # Brain to blood transfer coefficient of inorganic mercury
+const k_LB = 0.8940       # Liver to blood transfer coefficient of inorganic mercury
+const k_BK = 17.1234      # Blood to kidney transfer coefficient of inorganic mercury
+const k_KB = 0.0010       # Kidney to blood transfer coefficient of inorganic mercury
+const k_KU = 0.006949     # Kidney to urine transfer coefficient of inorganic mercury
+const k_BH = 0.1400       # Blood to hair transfer coefficient of inorganic mercury
+const k_BU = 0.06994      # Blood to urine transfer coefficient of inorganic mercury
+const k_BF = 3.9917       # Blood to feces transfer coefficient of inorganic mercury
+const k_LF = 1.5476       # Liver to feces transfer coefficient of inorganic mercury
+const k_BBr = 0.0028      # Blood to brain transfer coefficient of inorganic mercury
+const k_BrB = 0.0520      # Brain to blood transfer coefficient of inorganic mercury
 
 carrier_II = @ode_def begin
     # Organic
