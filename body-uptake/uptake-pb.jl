@@ -43,6 +43,10 @@ const A_gi = 0.06 #PB absorption coefficient from GI tract, ranges from 0.06 to 
 const eU = 0.47 #(/day)
 const eB = 0.2 #(/day)
 
+# Kinetic rates from parameter optimization
+const k_GB = 0.44429068804813565 #(/day)
+const k_GE = 7.027166796997966 #(/day)
+
 const HCT = 0.45 # haematocrit fraction of whole blood
 const R = 1.2 #ratio of unbound erythrocyte PB concentration to plasma PB concentration
 const BIND = 0.437 #Pb binding capacity of erythrocytes (mg Pb L⁻¹ cell)
@@ -62,6 +66,19 @@ lead = @ode_def begin #ODE system for constant intake of lead per day over sever
     dF = (1 - A_gi) * IR_gi #Faeces
 end a
 
+lead_modified = @ode_def begin #ODE system for constant intake of lead per day over several days
+    dG =  -k_GB * G - k_GE * G  #IR_gi = oral intake rate  of Pb (mg/day) (given in solving function) #amount in gut
+    dLi = k_GB * G - (k_LiB + eB) * Li + k_BLi * B #amount in liver
+    dK = - (k_KB + eU) * K + k_BK * B #amount in kidney
+    dBo = - k_BoB * Bo + k_BBo * B #amount in bone
+    dWP = - k_WB * WP + k_BW * B #amount in well-perfused tissues
+    dPP = - k_PB * PP + k_BP * B #amount in poorly-perfused tissues
+    dB = (- (k_BLi + k_BK + k_BBo + k_BW + k_BP) * B #amount in blood plasma
+     + k_LiB * Li + k_KB * K + k_BoB * Bo + k_WB * WP + k_PB * PP)
+    dU = eU * K #urine
+    dBi = eB * Li #Biliary excretion
+    dF = k_GE * G #Faeces
+end a
 
 function CB(CPLASMA) #Function to calculate whole blood concentration from plasma concentration
     CB = (((1 - HCT) * CPLASMA)
@@ -98,26 +115,26 @@ function plotting(intake, duration, range, compartment) #intake is in mg/day, du
     end
 end
 
-function pb_body_uptake(days, intake)
+function pb_body_uptake(days, intake, modified=false)
     global IR_gi =  intake
+    if modified model = lead_modified else model = lead end
+    display(model)
     tspan = (0.0,1.0)
     u0 = zeros(10)
-    prob = ODEProblem(lead, u0, tspan,1)
-    sol = solve(prob, dense=false)
-    time = sol.t
-    display(sol.t[2])
-    u = sol[2,:]
+    if modified u0[1] = intake end
+    sol = solve(ODEProblem(model, u0, tspan), dense=false)
     for t in 2:days
         tspan = tspan .+ 1
         u0 = sol.u[end]
+        if modified u0[1] = intake end
         sol1 = sol
-        sol2 = solve(ODEProblem(lead, u0, tspan,1),alg=AutoTsit5(BS3()), dense=false)
+        sol2 = solve(ODEProblem(model, u0, tspan,1), dense=false)
         sol = sol_append(sol1, sol2)
     end
     sol
 end
 
-sol1 = pb_body_uptake(300, 105e-3)
-sol2 = pb_body_uptake_noloop(300, 105e-3)
-plot(sol1, vars=[2])
-plot!(sol2, vars=[2])
+#sol1 = pb_body_uptake(300, 105e-3, false)
+#sol2 = pb_body_uptake(300, 105e-3, true)
+#plot(sol1, vars=[2])
+#plot!(sol2, vars=[2], linestyle=:dash)
