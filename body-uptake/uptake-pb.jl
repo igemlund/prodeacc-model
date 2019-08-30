@@ -1,8 +1,8 @@
 using DifferentialEquations
 using ParameterizedFunctions
 using Plots
-include("../export_data.jl")
-
+include("../append_solution.jl")
+pyplot()
 
 #Based on dede et al 2018
 const Q_liv = 1084.3 #Blood plasma flow to liver (L/day)
@@ -88,7 +88,6 @@ end
 function plotting(intake, duration, range, compartment) #intake is in mg/day, duration is in days, compartment is the order of compartment in the differential equations (from 1 to 11)
     A = solving(intake,zeros(10),(0.0,duration))
     B = solving(0.0, A[end],(duration,range))
-    export_to_after_effects(A,"lead_body", 500)
 
     if compartment == 11   #compartment 11 is whole blood concentration
         plot!(A.t, wholeblood_conc(A))
@@ -99,6 +98,26 @@ function plotting(intake, duration, range, compartment) #intake is in mg/day, du
     end
 end
 
+function pb_body_uptake(days, intake)
+    global IR_gi =  intake
+    tspan = (0.0,1.0)
+    u0 = zeros(10)
+    prob = ODEProblem(lead, u0, tspan,1)
+    sol = solve(prob, dense=false)
+    time = sol.t
+    display(sol.t[2])
+    u = sol[2,:]
+    for t in 2:days
+        tspan = tspan .+ 1
+        u0 = sol.u[end]
+        sol1 = sol
+        sol2 = solve(ODEProblem(lead, u0, tspan,1),alg=AutoTsit5(BS3()), dense=false)
+        sol = sol_append(sol1, sol2)
+    end
+    sol
+end
 
-plot()
-plotting(105e-3,100.0,300.0,1) #figure 10 subject D in dede et al
+sol1 = pb_body_uptake(300, 105e-3)
+sol2 = pb_body_uptake_noloop(300, 105e-3)
+plot(sol1, vars=[2])
+plot!(sol2, vars=[2])
