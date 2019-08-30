@@ -4,6 +4,8 @@ using DifferentialEquations
 using ODEInterfaceDiffEq
 using ParameterizedFunctions
 using Plots
+include("../append_solution.jl")
+
 pyplot()
 
 # Constants
@@ -53,8 +55,8 @@ function colony_model(t, symbols::Array{}=[])
     (:k_CG, 0.01)                       # unknonw Ions Cytoplasm --> Gut
     (:N0, 1e9)                          # Number of cells at start
     (:G0, mcg2ions(0.25, 75)*V_gut)     # Gut start amount
-    (:lag_phase, 3.0)                   # Lag phase duration [h]
-    (:induced_time, 6.0)])              # Induction time [h]
+    (:lag_phase, 0.0)                   # Lag phase duration [h]
+    (:induced_time, 0.0)])              # Induction time [h]
 
     # Replace values
     for s in symbols p[index(s[1])] = (s[1], s[2]) end
@@ -80,18 +82,16 @@ function colony_model(t, symbols::Array{}=[])
         tspan1 = (0.0, t)
     end
     prob1 = ODEProblem(bacteria_uptake,u0_1,tspan1,k)
-    sol1 = solve(prob1, isoutofdomain=(u,p,t) -> any(x -> x < 0, u))
+    sol1 = solve(prob1, isoutofdomain=(u,p,t) -> any(x -> x < 0, u), dense=false)
 
     # Ajust for lag phase
     sol1.t .+= t_lag
     pushfirst!(sol1.u, u0_1)
+    pushfirst!(sol1.u, u0_1)
     pushfirst!(sol1.t, t_lag-0.01)
     pushfirst!(sol1.t, 0.0)
-    pushfirst!(sol1.k, repeat([float(zeros(7))], 7))
-    pushfirst!(sol1.k, repeat([float(zeros(7))], 7))
     pushfirst!(sol1.alg_choice, 1)
     pushfirst!(sol1.alg_choice, 1)
-    sol1.k[2][:] .= [float(zeros(7))]
     if t_ind == 0
         return sol1
     end
@@ -101,21 +101,17 @@ function colony_model(t, symbols::Array{}=[])
     tspan2 = (0, t-t_ind)
     u0_2 = sol1.u[end]
     prob2 = ODEProblem(bacteria_uptake,u0_2,tspan2,k)
-    sol2 = solve(prob2, isoutofdomain=(u,p,t) -> any(x -> x < 0, u))
+    sol2 = solve(prob2, isoutofdomain=(u,p,t) -> any(x -> x < 0, u), dense=false)
     sol2.t .+= t_ind
 
     # Append solutions
-    append!(sol1.u, sol2.u)
-    append!(sol1.t, sol2.t)
-    sol2.k[1]=sol1.k[end]
-    append!(sol1.k, sol2.k)
-    append!(sol1.alg_choice, sol2.alg_choice)
-    sol1
+    sol_append(sol1, sol2)
 end
 
 function plot_init()
     plot(layout=(3,2))
 end
+
 function plot_model(sol)
     p1 = plot(sol, vars=[1],
         label="Number of cells",
@@ -137,6 +133,7 @@ function plot_model(sol)
     plot(p1, p2, p3, control, layout=(2,2))
 end
 
-sol = colony_model(20.0, [(:lag_phase, 6.0), (:induced_time, 6.0)])
+sol = colony_model(40.0, [(:lag_phase, 0.0), (:induced_time, 0.0)])
 plot_init()
+plot(sol, vars=[1])
 plot_model(sol)

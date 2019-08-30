@@ -1,50 +1,56 @@
 using DifferentialEquations
 using ParameterizedFunctions
 using Plots
+include("../append_solution.jl")
+pyplot()
 
 #Based on dede et al 2018
-Q_liv = 1084.3 #Blood plasma flow to liver (L/day)
-Q_kid = 737.3 #Blood plasma flow to kidney (L/day)
-Q_bone = 130.1
-Q_wp = 86.74 #Blood plasma flow to well-perfused kidney (L/day)
-Q_pp = 346.98 #Blood plasma flow to poorly-perfused kidney
+const Q_liv = 1084.3 #Blood plasma flow to liver (L/day)
+const Q_kid = 737.3 #Blood plasma flow to kidney (L/day)
+const Q_bone = 130.1
+const Q_wp = 86.74 #Blood plasma flow to well-perfused kidney (L/day)
+const Q_pp = 346.98 #Blood plasma flow to poorly-perfused kidney
 
-V_liv = 1.75 #Volume of liver (L)
-V_kid = 0.29 #kidney (L)
-V_bone = 9.8
-V_blood = 5.11
-V_plas = 2.81 #plasma
-V_wp = 1.96
-V_pp = 58.24
+const V_liv = 1.75 #Volume of liver (L)
+const V_kid = 0.29 #kidney (L)
+const V_bone = 9.8
+const V_blood = 5.11
+const V_plas = 2.81 #plasma
+const V_wp = 1.96
+const V_pp = 58.24
 
-P_liv = 100 #Partion coefficient, liver/plasma (no unit)
-P_kid = 100
-P_wp = 100
-P_pp = 20
-P_bone = 1000
+const P_liv = 100 #Partion coefficient, liver/plasma (no unit)
+const P_kid = 100
+const P_wp = 100
+const P_pp = 20
+const P_bone = 1000
 
 #transfer rate from organs to blood-plasma (per day)
-k_LiB = Q_liv/(V_liv*P_liv)
-k_KB = Q_kid/(V_kid*P_kid)
-k_BoB = Q_bone/(V_bone*P_bone)
-k_WB = Q_wp/(V_wp*P_wp)
-k_PB = Q_pp/(V_pp*P_pp)
+const k_LiB = Q_liv/(V_liv*P_liv)
+const k_KB = Q_kid/(V_kid*P_kid)
+const k_BoB = Q_bone/(V_bone*P_bone)
+const k_WB = Q_wp/(V_wp*P_wp)
+const k_PB = Q_pp/(V_pp*P_pp)
 
 #transfer rate from blood-plasma to organs (per day)
-k_BLi = Q_liv/V_plas
-k_BK = Q_kid/V_plas
-k_BW = Q_wp/V_plas
-k_BBo = Q_bone/V_plas
-k_BP = Q_pp/V_plas
+const k_BLi = Q_liv/V_plas
+const k_BK = Q_kid/V_plas
+const k_BW = Q_wp/V_plas
+const k_BBo = Q_bone/V_plas
+const k_BP = Q_pp/V_plas
 
-A_gi = 0.06 #PB absorption coefficient from GI tract, ranges from 0.06 to 0.12 (unitless)
-eU = 0.47 #(/day)
-eB = 0.2 #(/day)
+const A_gi = 0.06 #PB absorption coefficient from GI tract, ranges from 0.06 to 0.12 (unitless)
+const eU = 0.47 #(/day)
+const eB = 0.2 #(/day)
 
-HCT = 0.45 # haematocrit fraction of whole blood
-R = 1.2 #ratio of unbound erythrocyte PB concentration to plasma PB concentration
-BIND = 0.437 #Pb binding capacity of erythrocytes (mg Pb L⁻¹ cell)
-KBIND = 3.72e-4 #Binding constant of erythrocytes (mg Pb L⁻¹ cell)
+# Kinetic rates from parameter optimization
+const k_GB = 0.44429068804813565 #(/day)
+const k_GE = 7.027166796997966 #(/day)
+
+const HCT = 0.45 # haematocrit fraction of whole blood
+const R = 1.2 #ratio of unbound erythrocyte PB concentration to plasma PB concentration
+const BIND = 0.437 #Pb binding capacity of erythrocytes (mg Pb L⁻¹ cell)
+const KBIND = 3.72e-4 #Binding constant of erythrocytes (mg Pb L⁻¹ cell)
 
 lead = @ode_def begin #ODE system for constant intake of lead per day over several days
     dG =  IR_gi - A_gi * IR_gi - (1 - A_gi) * IR_gi  #IR_gi = oral intake rate  of Pb (mg/day) (given in solving function) #amount in gut
@@ -60,6 +66,19 @@ lead = @ode_def begin #ODE system for constant intake of lead per day over sever
     dF = (1 - A_gi) * IR_gi #Faeces
 end a
 
+lead_modified = @ode_def begin #ODE system for constant intake of lead per day over several days
+    dG =  -k_GB * G - k_GE * G  #IR_gi = oral intake rate  of Pb (mg/day) (given in solving function) #amount in gut
+    dLi = k_GB * G - (k_LiB + eB) * Li + k_BLi * B #amount in liver
+    dK = - (k_KB + eU) * K + k_BK * B #amount in kidney
+    dBo = - k_BoB * Bo + k_BBo * B #amount in bone
+    dWP = - k_WB * WP + k_BW * B #amount in well-perfused tissues
+    dPP = - k_PB * PP + k_BP * B #amount in poorly-perfused tissues
+    dB = (- (k_BLi + k_BK + k_BBo + k_BW + k_BP) * B #amount in blood plasma
+     + k_LiB * Li + k_KB * K + k_BoB * Bo + k_WB * WP + k_PB * PP)
+    dU = eU * K #urine
+    dBi = eB * Li #Biliary excretion
+    dF = k_GE * G #Faeces
+end a
 
 function CB(CPLASMA) #Function to calculate whole blood concentration from plasma concentration
     CB = (((1 - HCT) * CPLASMA)
@@ -96,6 +115,25 @@ function plotting(intake, duration, range, compartment) #intake is in mg/day, du
     end
 end
 
+function pb_body_uptake(days, intake, modified=false)
+    global IR_gi =  intake
+    if modified model = lead_modified else model = lead end
+    tspan = (0.0,1.0)
+    u0 = zeros(10)
+    if modified u0[1] = intake end
+    sol = solve(ODEProblem(model, u0, tspan), dense=false)
+    for t in 2:days
+        tspan = tspan .+ 1
+        u0 = sol.u[end]
+        if modified u0[1] = intake end
+        sol1 = sol
+        sol2 = solve(ODEProblem(model, u0, tspan,1), dense=false)
+        sol = sol_append(sol1, sol2)
+    end
+    sol
+end
 
-plot()
-plotting(105e-3,82.0,300.0,11) #figure 10 subject D in dede et al
+#sol1 = pb_body_uptake(300, 105e-3, false)
+#sol2 = pb_body_uptake(300, 105e-3, true)
+#plot(sol1, vars=[2])
+#plot!(sol2, vars=[2], linestyle=:dash)
