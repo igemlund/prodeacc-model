@@ -118,7 +118,6 @@ end
 function pb_body_uptake(days, intake, modified=false)
     global IR_gi =  intake
     if modified model = lead_modified else model = lead end
-    display(model)
     tspan = (0.0,1.0)
     u0 = zeros(10)
     if modified u0[1] = intake end
