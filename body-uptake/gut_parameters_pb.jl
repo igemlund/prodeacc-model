@@ -5,10 +5,10 @@ include("uptake-pb.jl")
 
 function loss_function(k)
     global k_GB = k[1]
-    global k_GE = k[2]
-    days = 40
+    global I_GE = k[2]
+    days = 400
     dose = 105e-3
-    t = 1:2:days
+    t = 1:days
     try
         sol = pb_body_uptake(days, dose, false)(t)
         sol_mod = pb_body_uptake(days, dose, true)(t)
@@ -38,6 +38,5 @@ display(k_GE)
 
 sol1 = pb_body_uptake(400, 205e-2, false)
 sol2 = pb_body_uptake(400, 205e-2, true)
-plot(sol1, vars=[2,3])
-plot!(sol2, vars=[2,3], linestyle=:dash)
-plot(sol2, vars=[1], xlims=[0, 1])
+plot(sol1, vars=[1])
+plot(sol2, vars=[1], linestyle=:dash, xlims=[0,4])
