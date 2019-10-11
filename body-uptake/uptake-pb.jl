@@ -133,7 +133,9 @@ function pb_body_uptake(days, intake, modified=false)
     sol
 end
 
-#sol1 = pb_body_uptake(300, 105e-3, false)
+sol1 = pb_body_uptake(365*8, 105e-3, true)
+plot(sol1[1,:])
+
 #sol2 = pb_body_uptake(300, 105e-3, true)
 #plot(sol1, vars=[2])
 #plot!(sol2, vars=[2], linestyle=:dash)

@@ -50,3 +50,5 @@ function float_to_string(float)
     end
     return s
 end
+
+export_to_after_effects(sol1, "pb_105e-3_per_day_8y", 16000)

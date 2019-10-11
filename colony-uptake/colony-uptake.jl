@@ -36,27 +36,32 @@ bacteria_uptake = @ode_def begin
         + k_pro_deg * AP_occupied
         - dN/N * C)
     dmRNA = tsc - k_rna_deg * mRNA
-end k_growth N_max k_tsl tsc k_rna_deg k_pro_deg V_max k_m k_CA k_CG N0 G0 c lag ind
+end k_growth N_max k_tsl tsc k_rna_deg k_pro_deg V_max k_m k_CA k_CG N0 G0 c lag ind TP0 AP0
 
 function colony_model(t, symbols::Array{}=[])
     value(key::Symbol) = p[findfirst(x -> x[1] == key, p)][2]
     index(key::Symbol) = findfirst(x -> x[1] == key, p)
 
     # Parameters
-    p = ([(:k_growth, log(2)/1)         # Growth rate, double every 30 min. [/h]
+    p = (
+    [
+    (:k_growth, log(2)/0.5)         # Growth rate, double every 30 min. [/h]
     (:N_max, 1e13)                      # Max number of cells
     (:k_tsl, 0.075*1e-9*Av*V_cell*60)   # Translation rate [/h]
     (:tsc, 15*60)                       # Transcription rate [/h]
     (:k_rna_deg, 20.79)                 # RNA degradation rate [/h]
     (:k_pro_deg, 0.1)                   # Protein degradation rate [/h]
     (:V_max, 3.5676e-1)                 # unknown [ion/h/TP]
-    (:k_m, 3.9e-6*Av*1e-4)              # unknown [ion/m^3]
+    (:k_m, 2.3458e14)              # unknown [ion/m^3]
     (:k_CA, 0.1)                        # unknown Accumulation protein capture rate
     (:k_CG, 0.01)                       # unknonw Ions Cytoplasm --> Gut
     (:N0, 1e9)                          # Number of cells at start
     (:G0, mcg2ions(0.25, 75)*V_gut)     # Gut start amount
     (:lag_phase, 0.0)                   # Lag phase duration [h]
-    (:induced_time, 0.0)])              # Induction time [h]
+    (:induced_time, 0.0)
+    (:TP0, 0.0)
+    (:AP0, 0.0)
+    ])              # Induction time [h]
 
     # Replace values
     for s in symbols p[index(s[1])] = (s[1], s[2]) end
@@ -66,8 +71,8 @@ function colony_model(t, symbols::Array{}=[])
     u0_1 = zeros(7)
     u0_1[1] = value(:N0)
     u0_1[2] = value(:G0)
-    u0_1[3] = 1e-10
-    u0_1[4] = 1e-10
+    u0_1[3] = value(:TP0)
+    u0_1[4] = value(:AP0)
     u0_1[5] = 1e-10
     u0_1[6] = 1e-10
 
@@ -101,7 +106,7 @@ function colony_model(t, symbols::Array{}=[])
     tspan2 = (0, t-t_ind)
     u0_2 = sol1.u[end]
     prob2 = ODEProblem(bacteria_uptake,u0_2,tspan2,k)
-    sol2 = solve(prob2, isoutofdomain=(u,p,t) -> any(x -> x < 0, u), dense=false)
+    sol2 = solve(prob2,Rosenbrock23(autodiff=false),maxiters=3e5, isoutofdomain=(u,p,t) -> any(x -> x < 0, u), dense=false)
     sol2.t .+= t_ind
 
     # Append solutions
@@ -133,7 +138,10 @@ function plot_model(sol)
     plot(p1, p2, p3, control, layout=(2,2))
 end
 
-sol = colony_model(40.0, [(:lag_phase, 0.0), (:induced_time, 0.0)])
+@time begin
+    sol = colony_model(5.0, [])
+end
+
 plot_init()
 plot(sol, vars=[1])
 plot_model(sol)
