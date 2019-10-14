@@ -3,6 +3,8 @@ using Plots
 using DifferentialEquations
 using ParameterizedFunctions
 using IterableTables
+include("../append_solution.jl")
+pyplot()
 
 Q_gi = 1440  #Blood flow to GI tract (l/day)
 Q_liv = 446.4 #Blood flow to liver (l/day)
@@ -60,11 +62,6 @@ P_hrtN = 2.4
 P_brM = 2.2 #Same as above but for brain
 P_brN = 3.3
 
-#calculate absorption coefficient (A_gi) from P_gi, A_gi is the percentage of amount of arsenic being obsorbed to blood
-A_gi3 = (V_blood/V_gi)/(P_gi3 + (V_blood/V_gi))
-A_gi5 = (V_blood/V_gi)/(P_gi5 + (V_blood/V_gi))
-A_giM = (V_blood/V_gi)/(P_giM + (V_blood/V_gi))
-A_giN = (V_blood/V_gi)/(P_giN + (V_blood/V_gi))
 
 eF = 0.03 #faecal excretion rate (/day)
 eB = 0.43 #Biliary excretion rate (/day)
@@ -299,51 +296,34 @@ arsenic_coupled = @ode_def begin #arsenic model coupled with colony model
 end a
 
 
-function arsenic_plot(model,intake,init_bac,day,organ,K) #intake refers to the daily intake, organ refers to the order number of the organ in the differential equations (from 1 to 12)
-    if model == "arsenic_coupled"
-        global initial = zeros(54)                       #init_bac is the number of initial bacteria
-        global initial[13] = intake
-        global initial[49] = init_bac
-        global tspan = (0.0,1.0)
-        global prob = ODEProblem(arsenic_coupled,initial,tspan,K)
-        global sol = solve(prob)
-        global x = sol.t
-        global y = sol[organ,:] + sol[organ + 12,:] + sol[organ + 24,:] + sol[organ + 36,:]
-
-        for i = 1:day
-            global tspan = (i,i+1.0)
-            global initial = sol[end]
-            global initial[13] = initial[13] + intake
-            global initial[49] = init_bac
-            global prob = ODEProblem(arsenic_coupled,initial,tspan,K)
-            global sol = solve(prob)
-            global x = append!(x,sol.t)
-            global y = append!(y,sol[organ,:] + sol[organ + 12,:] + sol[organ + 24,:] + sol[organ + 36,:])
-        end
-
-    elseif model == "arsenic_once"
-        global initial = zeros(48)
-        global initial[13] = intake
-        global tspan = (0.0,1.0)
-        global prob = ODEProblem(arsenic_once,initial,tspan,K)
-        global sol = solve(prob)
-        global x = sol.t
-        global y = sol[organ,:] + sol[organ + 12,:] + sol[organ + 24,:] + sol[organ + 36,:]
-
-        for i = 1:day
-            global tspan = (i,i+1.0)
-            global initial = sol[end]
-            global initial[13] = initial[13] + intake
-            global prob = ODEProblem(arsenic_once,initial,tspan,K)
-            global sol = solve(prob)
-            global x = append!(x,sol.t)
-            global y = append!(y,sol[organ,:] + sol[organ + 12,:] + sol[organ + 24,:] + sol[organ + 36,:])
-        end
+function arsenic_body_uptake(intake,days,init_bac,coupled=false)
+    tspan = (0.0,1.0)
+    if coupled
+         model = arsenic_coupled
+         u0 = zeros(54)
+         u0[13] = intake
+         u0[49] = init_bac
+    else
+        model = arsenic_once
+        u0 = zeros(48)
+        u0[13] = intake
     end
-    plot!(x,y)
+    sol = solve(ODEProblem(model, u0, tspan), dense=false)
+    for t in 2:days
+        tspan = tspan .+ 1
+        u0 = sol.u[end]
+        u0[13] += intake
+        if coupled u0[49] = init_bac end
+        sol1 = sol
+        sol2 = solve(ODEProblem(model, u0, tspan), dense=false)
+        sol = sol_append(sol1, sol2)
+    end
+    sol
 end
-plot()
 
-arsenic_plot(arsenic_once,G0,N0,100,9,1)
-arsenic_plot(arsenic_coupled,G0,N0,100,9,1)
+sol1 = arsenic_body_uptake(G0,100,N0) #without colony
+sol2 =  arsenic_body_uptake(G0,100,N0,true) #with colony
+plot(sol1, vars=[33])
+plot!(sol2, vars = [33])
+
 #Dietary arsenic intakes estimated from various countries range from less than 10 µg/day to 200 µg/day (WHO)
