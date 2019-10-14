@@ -2,7 +2,6 @@ using CSV
 using Optim
 include("../optimize_model.jl")
 
-
 T1 = CSV.read("T1.csv")
 ind = [1, 5, 8]
 timestamp = T1[1][ind]
@@ -32,11 +31,11 @@ sol(0)[1]
 plotlyjs()
 
 plot(sol, vars=[1],
-    label="CFU according to model",
+    label="Modeled CFU",
     linewidth=4,
     #linecolor= 'b',
-    ylabel="CFU",
+    ylabel="CFU/mL",
     xlabel="hours")
-scatter!(timestamp, cfu, label="CFU measured in wetlab")
-savefig("growth_fitting2.svg")
-savefig("growth_fitting2.png")
+scatter!(timestamp, cfu, label="Measured CFU")
+savefig("growth_fitting.svg")
+savefig("growth_fitting.png")
