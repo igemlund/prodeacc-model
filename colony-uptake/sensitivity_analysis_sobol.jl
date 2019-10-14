@@ -33,30 +33,34 @@ u0_1[3] = 1e-10
 u0_1[4] = 1e-10
 u0_1[5] = 1e-10
 u0_1[6] = 1e-10
-t = 5.0
 c = 0.25
 
-factor = 10
+factor = 20
+t = 3.0
 parameter_range(x) = [x/factor, x*factor]
 pr = parameter_range.(k)
 tspan = (0.0, t)
 prob = ODEProblem(bacteria_uptake,u0_1,tspan,k)
 timestep = collect(range(0.0, stop = t, length = 1000))
-sobol = DiffEqSensitivity.Sobol()
-s1 = DiffEqSensitivity.gsa(prob,Tsit5(),timestep,pr,s)
-s2 = s1.ST
+sobol = DiffEqSensitivity.Sobol(N=4000, order=[0,1])
+s1 = DiffEqSensitivity.gsa(prob,Tsit5(),timestep,pr,sobol)
+s2 = s1.S1
 
-p1 = bar(["N_max","k_sl", "tsc", "k_rna_deg", "k_pro_deg", "V_max", "k_m", "k_CA", "k_CG", "N0", "G0", "lag_phase"],
-        [s2[1][end-1],
-         s2[2][end-1],
-         s2[3][end-1],
-         s2[4][end-1],
-         s2[5][end-1],
-         s2[6][end-1],
-         s2[7][end-1],
-         s2[8][end-1],
-         s2[9][end-1],
-         s2[10][end-1],
-         s2[11][end-1],
-         s2[12][end-2]])
+plotlyjs()
+i = 7
+p1 = bar(["k_tsl", "tsc", "k_rna\n_deg", "k_pro\n_deg", "V_max", "k_m", "k_CA", "k_CG", "N0", "G0", "lag_phase"],
+        [
+    #     s2[1][i,end-1],
+         s2[2][i,end-1],
+         s2[3][i,end-1],
+         s2[4][i,end-1],
+         s2[5][i,end-1],
+         s2[6][i,end-1],
+         s2[7][i,end-1],
+         s2[8][i,end-1],
+         s2[9][i,end-1],
+        s2[10][i,end-1],
+        s2[11][i,end-1],
+        s2[12][i,end-1]])
+savefig("sobo.png")
 plot(p1)
