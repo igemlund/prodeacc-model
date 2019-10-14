@@ -5,12 +5,11 @@ include("../optimize_model.jl")
 
 T1 = CSV.read("T1.csv")
 ind = [1, 5, 8]
-time = T1[1][ind]
+timestamp = T1[1][ind]
 cfu = T1[13][ind]
 
-scatter(time, cfu)
 
-f(x)=loss_function(target_data(float.(time), 1, [(:N0, cfu[1]), (:k_growth, x[1]), (:N_max, x[2]), (:lag_phase, x[3])]), cfu)
+f(x)=loss_function(target_data(float.(timestamp), 1, [(:N0, cfu[1]), (:k_growth, x[1]), (:N_max, x[2]), (:lag_phase, x[3])]), cfu)
 options = Optim.Options(show_trace=true,
                         show_every=100,
                         iterations=8000,
@@ -27,7 +26,17 @@ alg = ParticleSwarm(n_particles=6, lower=lower, upper=upper)
 #alg = NelderMead()
 time = @elapsed res = optimize(f, k_init,alg, options)
 k_growth, N_max, lag_phase = res.minimizer
-plotlyjs()
 sol = colony_model(12, [(:N0, cfu[1]),(:k_growth, k_growth), (:N_max, N_max), (:lag_phase, lag_phase)])
 sol(0)[1]
-plot!(sol, vars=[1])
+
+plotlyjs()
+
+plot(sol, vars=[1],
+    label="CFU according to model",
+    linewidth=4,
+    #linecolor= 'b',
+    ylabel="CFU",
+    xlabel="hours")
+scatter!(timestamp, cfu, label="CFU measured in wetlab")
+savefig("growth_fitting2.svg")
+savefig("growth_fitting2.png")
