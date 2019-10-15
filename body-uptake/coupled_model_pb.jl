@@ -2,6 +2,7 @@ using Plots
 using DifferentialEquations
 using ParameterizedFunctions
 using IterableTables
+using JLD2
 
 include("../append_solution.jl")
 pyplot()
@@ -69,8 +70,10 @@ k_tsl = 0.075*1e-9*Av*V_cell*60*24   # Translation rate [/day]
 tsc =  15*60*24                       # Transcription rate [/day]
 k_rna_deg = log(2)/5*60*24                # RNA degradation rate [/day]
 k_pro_deg = log(2)/(2/3)*24                   # Protein degradation rate [/day]
-V_max = 3.5676e-1*24                  # unknown [ion/day/TP] (there's no difference for this V_max but there is when V_max is increased by say 50 times)
-k_m = 3.9*1e-4              # unknown [ion/m^3]
+#V_max = 3.5676e-1*24                  # unknown [ion/day/TP] (there's no difference for this V_max but there is when V_max is increased by say 50 times)
+V_max = 116*24   # from fitting [ion/day/TP] (there's no difference for this V_max but there is when V_max is increased by say 50 times)
+#k_m = 3.9*1e-4              # unknown [ion/m^3]
+k_m = 1e4              # unknown [ion/m^3]
 k_CA = 0.1                        # unknown Accumulation protein capture rate
 k_CG = 0.01                       # unknonw Ions Cytoplasm --> Gut
 N0 = 1e11                       # Number of cells at start
@@ -163,8 +166,9 @@ function pb_body_uptake(days, intake, init_bac, coupled = false)
     sol
 end
 
-sol1 = pb_body_uptake(50,G0,N0,true)
-sol2 = pb_body_uptake(50,G0,N0,false)
-plot(sol1, vars = [2])
-plot!(sol2, vars = [2])
+sol1 = pb_body_uptake(365*8,G0,N0,true)
+@save "pb_8y_114mcg_PRODEACC.sol" sol1
+sol2 = pb_body_uptake(365*8,G0,N0,false)
+@save "pb_8y_114mcg_PRODEACC.sol" sol2
+
 #average daily lead intake through diet is about 114 μg/day

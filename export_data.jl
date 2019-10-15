@@ -51,4 +51,5 @@ function float_to_string(float)
     return s
 end
 
-export_to_after_effects(sol1, "pb_105e-3_per_day_8y", 16000)
+export_to_after_effects(sol1, "pb_114mcg_per_day_8y_PRODEACC", 16000)
+export_to_after_effects(sol2, "pb_114mcg_per_day_8y", 16000)
