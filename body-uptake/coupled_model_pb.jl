@@ -1,10 +1,12 @@
 using Plots
+using StatsPlots
 using DifferentialEquations
 using ParameterizedFunctions
 using IterableTables
 using JLD2
 
 include("../append_solution.jl")
+include("../export_data.jl")
 pyplot()
 
 #Based on dede et al 2018
@@ -71,13 +73,12 @@ tsc =  15*60*24                       # Transcription rate [/day]
 k_rna_deg = log(2)/5*60*24                # RNA degradation rate [/day]
 k_pro_deg = log(2)/(2/3)*24                   # Protein degradation rate [/day]
 #V_max = 3.5676e-1*24                  # unknown [ion/day/TP] (there's no difference for this V_max but there is when V_max is increased by say 50 times)
-V_max = 116*24   # from fitting [ion/day/TP] (there's no difference for this V_max but there is when V_max is increased by say 50 times)
+V_max = 40.1*24   # from fitting [ion/day/TP] (there's no difference for this V_max but there is when V_max is increased by say 50 times)
 #k_m = 3.9*1e-4              # unknown [ion/m^3]
 k_m = 1e4              # unknown [ion/m^3]
 k_CA = 0.1                        # unknown Accumulation protein capture rate
 k_CG = 0.01                       # unknonw Ions Cytoplasm --> Gut
 N0 = 1e11                       # Number of cells at start
-G0 = mcg2ions(114,207.2)            # Gut start amount
 
 lead_coupled = @ode_def begin #ODE system for constant intake of lead per day over several days
     dG =  -k_GB * G - k_GE * G - V_max/(1+k_m/(G/V_gut))*TP*N
@@ -141,11 +142,11 @@ function wholeblood_conc(solution) #take an array of plasma concentration and tu
     return wholeblood
 end
 
-function pb_body_uptake(days, intake, init_bac, coupled = false)
+function pb_body_uptake(days, intake, init_bac, coupled = false, u0=zeros(16))
     tspan = (0.0,1.0)
     if coupled
         model = lead_coupled
-        u0 = zeros(16)
+        #u0 = zeros(16)
         u0[1] = intake
         u0[11] = init_bac
     else
@@ -166,9 +167,38 @@ function pb_body_uptake(days, intake, init_bac, coupled = false)
     sol
 end
 
-sol1 = pb_body_uptake(365*8,G0,N0,true)
-@save "pb_8y_114mcg_PRODEACC.sol" sol1
-sol2 = pb_body_uptake(365*8,G0,N0,false)
-@save "pb_8y_114mcg_PRODEACC.sol" sol2
+function wrapping()
+    u2 = zeros(16)
+    for i in 1:8*4
+        global sol2 = pb_body_uptake(91,G0,N0,true, u2)
 
+        u2 = sol2.u[end]
+        #export_to_csv(sol2, "pb_11mcg_per_day_8y_PRODEACC$i", 2000)
+    end
+    #@save "pb_11mcg_per_day_final_coupled.sol" sol2
+    return sol2
+end
+
+plotlyjs()
+G0 = mcg2ions(114,207.2)            # Gut start amount
+sol1 = pb_body_uptake(365*8,G0,N0,false)
+sol2 = wrapping()
+sol1_end = sol1[end]
+sol2_end = sol2[end]
+print(sol2_end[1:10]./sol1_end)
+mn = [sol1_end[2:7], sol2_end[2:7]]
+
+data = []
+append!(data, mn[1])
+append!(data, mn[2])
+data = float.(data)
+g = repeat(["Without Probiotic", "With Probiotic"], inner = 6)
+nam = [
+    "Liver", "Kidney", "Bone", "WP Tissue", "PP-tissue", "Blood",
+    "Liver", "Kidney", "Bone", "WP Tissue", "PP-tissue", "Blood",
+    ]
+groupedbar(nam, data,  group = g, ylabel="Number of Pb(II) ions")
+savefig("pb_compare_8y_114mcg.svg")
+savefig("pb_compare_8y_114mcg.png")
+#export_to_after_effects(sol, "pb_114mcg_per_day_8y_PRODEACC1", 2000)
 #average daily lead intake through diet is about 114 μg/day
