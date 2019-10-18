@@ -45,7 +45,7 @@ timestep = collect(range(0.0, stop = t, length = 1000))
 sobol = DiffEqSensitivity.Sobol(N=5000, order=[0,1,2])
 s1 = DiffEqSensitivity.gsa(prob,Tsit5(),timestep,pr,sobol)
 s1
-s2 = s1.ST
+s2 = s1.S2
 
 plotlyjs()
 i = 2
@@ -60,6 +60,7 @@ p1 = bar(names,
          s2[6][i,end-2],
          s2[7][i,end-2],
          s2[8][i,end-2],
-        ])
-savefig("sobol.png")
+        ],
+        legend=false)
+savefig("sobol_2.svg")
 plot(p1)
