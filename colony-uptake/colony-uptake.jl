@@ -138,9 +138,7 @@ function plot_model(sol)
     plot(p1, p2, p3, control, layout=(2,2))
 end
 
-@time begin
-    sol = colony_model(5.0, [])
-end
+sol = colony_model(5.0, [])
 
 plot_init()
 plot(sol, vars=[1])
