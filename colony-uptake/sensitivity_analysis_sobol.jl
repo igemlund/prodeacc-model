@@ -36,19 +36,19 @@ u0_1[5] = 1e-10
 u0_1[6] = 1e-10
 c = 0.25
 
-factor = 20
+factor = 10
 t = 3.0
 parameter_range(x) = [x/factor, x*factor]
 pr = parameter_range.(k)
 pr[1] = [log(2)/40, log(2)/0.5] #range for k_growth
 pr[2] = [1e10 , 1e14] #range for N_max
 pr[4] = [120 , 1000] #range for tsc
-pr[7] = [0 , 1e3] #range for V_max
-pr[8] = [0 , 1e14] #range for k_m
+#pr[7] = [1 , 1e3] #range for V_max
+pr[8] = [1 , 1e14] #range for k_m
 tspan = (0.0 , t)
 prob = ODEProblem(bacteria_uptake,u0_1,tspan,k)
 timestep = collect(range(0.0, stop = t, length = 1000))
-sobol = DiffEqSensitivity.Sobol(N=5000, order=[0,1,2])
+sobol = DiffEqSensitivity.Sobol(N=5000, order=[0,1, 2])
 s1 = DiffEqSensitivity.gsa(prob,Tsit5(),timestep,pr,sobol)
 s1
 s2 = s1.S2
