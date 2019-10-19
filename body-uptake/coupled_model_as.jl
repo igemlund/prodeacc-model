@@ -1,5 +1,6 @@
 # Based on Dede et al 2018
 using Plots
+using StatsPlots
 using DifferentialEquations
 using ParameterizedFunctions
 using IterableTables
@@ -145,17 +146,18 @@ M = 3 #another metabolism constant (μmol/L), all of them have value 3 so it can
 
 
 k_growth = log(2)/40*24        # Growth rate [/day], double every 40 hours in human gut.
-N_max = 1e13               # Max number of cells
+N_max = 1e13                 # Max number of cells
 k_tsl = 0.075*1e-9*Av*V_cell*60*24   # Translation rate [/day]
-tsc =  15*60*24/(1e-6*Av)                       # Transcription constant [μmol/day]
+tsc =  15*60*24                       # Transcription rate [/day]
 k_rna_deg = log(2)/5*60*24                # RNA degradation rate [/day]
 k_pro_deg = log(2)/(2/3)*24                   # Protein degradation rate [/day]
-V_max = 60.0*24                  # unknown [μmol/day/μmolTP]
-k_m = 2.60e-2/(1e-6*Av)              # unknown [μmol/m^3]
+#V_max = 3.5676e-1*24                  # unknown [ion/day/TP] (there's no difference for this V_max but there is when V_max is increased by say 50 times)
+V_max = 60.1*24                  # unknown [ion/day/TP] (there's no difference for this V_max but there is when V_max is increased by say 50 times)
+k_m = 26e-2              # unknown [ion/m^3]
 k_CA = 0.1                        # unknown Accumulation protein capture rate
 k_CG = 0.01                       # unknonw Ions Cytoplasm --> Gut
 N0 = 1e11                       # Number of cells at start
-G0 = mcg2mcm(50,75)            # Gut start amount
+G0 = mcg2mcm(15,75)            # Gut start amount
 
 
 arsenic_once = @ode_def begin #arsenic model for one time ingestion
@@ -219,7 +221,7 @@ end a
 
 arsenic_coupled = @ode_def begin #arsenic model coupled with colony model
 #Differential equations for As(III)
-    dG₃ = - (k_GB₃ + eF + O_Tis) * G₃ + k_BG * B₃ + R_Tis * G₅ - V_max/(1+k_m/(G₃/V_gut)) * TP * N #Gut
+    dG₃ = - (k_GB₃ + eF + O_Tis) * G₃ + k_BG * B₃ + R_Tis * G₅ - (V_max/(Av*1e-6)) / (1 + (k_m/(Av*1e-6)) / (G₃/V_gut)) * TP * N #Gut
     dLi₃ = - (k_LiB₃ + eB + O_Tis) * Li₃ + k_BLi * B₃ + R_Tis * Li₅ - (M_Li3M * (Li₃ / V_liv)) / (M + Li₃ / V_liv) - (M_Li3N * (Li₃ / V_liv)) / (M + Li₃ / V_liv) #Liver
     dK₃ = - (k_KB₃ + eUᵢ + O_Tis) * K₃ + k_BK * B₃ + R_K * K₅ - (M_K3M *( K₃ / V_kid))/(M + (K₃ / V_kid)) - (M_K3N * (K₃ / V_kid)) / (M + K₃ / V_kid) #Kidney
     dS₃ = - (k_SB₃ + O_Tis) * S₃ + k_BS * B₃ + R_Tis * S₅ #skin
@@ -233,7 +235,7 @@ arsenic_coupled = @ode_def begin #arsenic model coupled with colony model
     dBil₃ = eB * Li₃ #Biliary
 
 #Differential equations for As(V)
-    dG₅ = - (k_GB₅ + eF + R_Tis) * G₅ + k_BG * B₅ + O_Tis * G₃ - V_max/(1+k_m/(G₅/V_gut)) * TP * N
+    dG₅ = - (k_GB₅ + eF + R_Tis) * G₅ + k_BG * B₅ + O_Tis * G₃ - (V_max/(Av*1e-6)) / (1 + (k_m/(Av*1e-6)) / (G₃/V_gut)) * TP * N
     dLi₅ = - (k_LiB₅ + eB + R_Tis) * Li₅ + k_BLi * B₅ + O_Tis * Li₃
     dK₅ = - (k_KB₅ + eUᵢ + R_K) * K₅ + k_BK * B₅ + O_Tis * K₃
     dS₅ = - (k_SB₅ + R_Tis) * S₅ + k_BS * B₅ + O_Tis * S₃
@@ -275,7 +277,7 @@ arsenic_coupled = @ode_def begin #arsenic model coupled with colony model
     dBilₙ = eB * Liₙ
 
     # Colony
-    dN = k_growth * N - k_growth * (N^2) / N_max      # Number of bacteria in gut
+    dN = k_growth * N - k_growth * (N^2) / N_max    # Number of bacteria in gut
 
     # Single Bacteria
     dTP = (k_tsl * mRNA
@@ -301,8 +303,7 @@ function arsenic_body_uptake(intake,days,init_bac,coupled=false)
     if coupled
          model = arsenic_coupled
          u0 = zeros(54)
-         u0[1] = intake/2
-         u0[13] = intake/2
+         u0[13] = intake
          u0[49] = init_bac
     else
         model = arsenic_once
@@ -313,12 +314,8 @@ function arsenic_body_uptake(intake,days,init_bac,coupled=false)
     for t in 2:days
         tspan = tspan .+ 1
         u0 = sol.u[end]
-        u0[1] += intake/2
-        u0[13] += intake/2
-        if coupled
-            u0[collect(50:54)] .= 0
-            u0[49] = init_bac
-        end
+        u0[13] += intake
+        if coupled u0[49] = init_bac end
         sol1 = sol
         sol2 = solve(ODEProblem(model, u0, tspan), dense=false)
         sol = sol_append(sol1, sol2)
@@ -326,8 +323,47 @@ function arsenic_body_uptake(intake,days,init_bac,coupled=false)
     sol
 end
 
-sol1 = arsenic_body_uptake(G0,100,N0) #without colony
-sol2 =  arsenic_body_uptake(G0,100,N0,true) #with colony
-plot(sol1, vars=[25])
-plot!(sol2, vars = [25])
+sol1 = arsenic_body_uptake(G0,30,N0) #without colony
+sol2 =  arsenic_body_uptake(G0,30,N0,true) #with colony
+plot(sol2[13,:])
+
+sol1_end = sol1[end]
+sol2_end = sol2[end]
+
+index_liver = [2, 14, 26, 38]
+index_kidneys = [2, 14, 26, 38].+1
+index_skin = [2, 14, 26, 38].+2
+index_lungs = [2, 14, 26, 38].+3
+
+levels1 = [
+    sum(sol1_end[index_liver]),
+    sum(sol1_end[index_kidneys]),
+    sum(sol1_end[index_skin]),
+    sum(sol1_end[index_lungs]),
+    ]
+
+levels2 = [
+    sum(sol2_end[index_liver]),
+    sum(sol2_end[index_kidneys]),
+    sum(sol2_end[index_skin]),
+    sum(sol2_end[index_lungs]),
+    ]
+
+1-sum(levels2./levels1)/4
+
+plotlyjs()
+data = []
+append!(data, levels1)
+append!(data, levels2)
+data = float.(data)
+g = repeat(["Without Probiotic", "With Probiotic"], inner = 4)
+nam = [
+    "Liver", "Kidneys", "Skin", "Lungs",
+    "Liver", "Kidneys", "Skin", "Lungs"
+    ]
+groupedbar(nam, data,  group = g, ylabel="Micro mol of As ions")
+savefig("As_compare_30d_15mcmol.png")
+savefig("As_compare_30d_15mcmol.svg")
+
+
 #Dietary arsenic intakes estimated from various countries range from less than 10 µg/day to 200 µg/day (WHO)
