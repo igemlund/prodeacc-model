@@ -43,7 +43,7 @@ pr = parameter_range.(k)
 pr[1] = [log(2)/40, log(2)/0.5] #range for k_growth
 pr[2] = [1e10 , 1e14] #range for N_max
 pr[4] = [120 , 1000] #range for tsc
-#pr[7] = [1 , 1e3] #range for V_max
+pr[7] = [1 , 1e2] #range for V_max
 pr[8] = [1 , 1e14] #range for k_m
 tspan = (0.0 , t)
 prob = ODEProblem(bacteria_uptake,u0_1,tspan,k)
@@ -51,7 +51,7 @@ timestep = collect(range(0.0, stop = t, length = 1000))
 sobol = DiffEqSensitivity.Sobol(N=5000, order=[0,1, 2])
 s1 = DiffEqSensitivity.gsa(prob,Tsit5(),timestep,pr,sobol)
 s1
-s2 = s1.S2
+s2 = s1.ST
 
 plotlyjs()
 i = 2
