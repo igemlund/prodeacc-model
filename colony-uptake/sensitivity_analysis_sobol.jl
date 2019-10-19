@@ -8,11 +8,12 @@ include("colony-uptake.jl")
 value(key::Symbol) = p[findfirst(x -> x[1] == key, p)][2]
 index(key::Symbol) = findfirst(x -> x[1] == key, p)
 
+
 # Parameters
 p = ([(:k_growth, log(2)/1)         # Growth rate, double every 30 min. [/h]
     (:N_max, 1e13)                      # Max number of cells
     (:k_tsl, 0.075*1e-9*Av*V_cell*60)   # Translation rate [/h]
-    (:tsc, 15*60)                       # Transcription rate [/h]
+    (:tsc, 15*60)                       # Transcription constant [amount/h]
     (:k_rna_deg, 20.79)                 # RNA degradation rate [/h]
     (:k_pro_deg, 0.1)                   # Protein degradation rate [/h]
     (:V_max, 3.5676e-1)                 # unknown [ion/h/TP]
@@ -20,7 +21,7 @@ p = ([(:k_growth, log(2)/1)         # Growth rate, double every 30 min. [/h]
     (:k_CA, 0.1)                        # unknown Accumulation protein capture rate
     (:k_CG, 0.01)                       # unknonw Ions Cytoplasm --> Gut
     (:N0, 1e9)                          # Number of cells at start
-    (:G0, mcg2ions(0.25, 75)*V_gut)     # Gut start amount
+    (:G0, mcg2ions(50, 75)*V_gut)     # Gut start amount
     (:lag_phase, 0.0)])                 # Lag phase duration [h]
 # Replace values
 k = map(x -> x[2], p)
@@ -39,7 +40,12 @@ factor = 20
 t = 3.0
 parameter_range(x) = [x/factor, x*factor]
 pr = parameter_range.(k)
-tspan = (0.0, t)
+pr[1] = [log(2)/40, log(2)/0.5] #range for k_growth
+pr[2] = [1e10 , 1e14] #range for N_max
+pr[4] = [120 , 1000] #range for tsc
+pr[7] = [0 , 1e3] #range for V_max
+pr[8] = [0 , 1e14] #range for k_m
+tspan = (0.0 , t)
 prob = ODEProblem(bacteria_uptake,u0_1,tspan,k)
 timestep = collect(range(0.0, stop = t, length = 1000))
 sobol = DiffEqSensitivity.Sobol(N=5000, order=[0,1,2])
